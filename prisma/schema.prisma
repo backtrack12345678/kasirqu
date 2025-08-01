@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  CASHIER
+  WAITER
+}
+
+model User {
+  id         String         @id @db.VarChar(150)
+  phone      String         @unique @db.VarChar(20)
+  nama       String         @db.VarChar(100)
+  role       UserRole       @default(OWNER)
+  kotaKabId  Int            @map("kota_kab_id")
+  kota_kab   Kota_Kabupaten @relation(fields: [kotaKabId], references: [id])
+  isActive   Boolean        @default(true) @map("is_active")
+  acceptTerm Boolean        @map("accept_term")
+
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime?      @updatedAt @map("updated_at")
+  refreshToken Refresh_Token?
+  employees    Employee[]
+
+  @@map("user")
+}
+
+model Employee {
+  id       String   @id @db.VarChar(150)
+  email    String   @unique @db.VarChar(200)
+  nama     String   @db.VarChar(100)
+  role     UserRole
+  password String   @db.VarChar(20)
+  isActive Boolean  @default(true) @map("is_active")
+  ownerId  String   @map("owner_id") @db.VarChar(150)
+  owner    User     @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("employee")
+}
+
+model Kota_Kabupaten {
+  id   Int    @id @default(autoincrement())
+  kode String @db.VarChar(10)
+  nama String @db.VarChar(150)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  user      User[]
+
+  @@map("kota_kabupaten")
+}
+
+model Refresh_Token {
+  id                Int     @id @default(autoincrement())
+  userId            String  @unique @map("user_id") @db.VarChar(150)
+  user              User    @relation(fields: [userId], references: [id])
+  refreshToken      String  @map("refresh_token") @db.VarChar(250)
+  notificationToken String? @map("notification_token") @db.VarChar(250)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("refresh_token")
+}
