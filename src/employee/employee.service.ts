@@ -37,13 +37,14 @@ export class EmployeeService {
     return `This action returns all employee`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} employee`;
+  async findOne(auth: IAuth, employeeId: string): Promise<IEmployeeResponse> {
+    const employee = await this.checkEmployeeOwner(employeeId, auth.id);
+    return employee;
   }
 
-  update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
-    return `This action updates a #${id} employee`;
-  }
+  // update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
+  //   return `This action updates a #${id} employee`;
+  // }
 
   remove(id: number) {
     return `This action removes a #${id} employee`;
@@ -78,11 +79,31 @@ export class EmployeeService {
     }
   }
 
+  private async checkEmployeeOwner(employeeId: string, ownerId: string) {
+    const employee = await this.prismaService.employee.findUnique({
+      where: {
+        id: employeeId,
+      },
+      select: this.employeeSelectCondition,
+    });
+
+    if (!employee) {
+      this.errorService.notFound('Karyawan Tidak Ditemukan');
+    }
+
+    if (ownerId !== employee.ownerId) {
+      this.errorService.forbidden('Tidak Diizinkan Mengakses Karyawan Ini');
+    }
+
+    return employee;
+  }
+
   private employeeSelectCondition = {
     id: true,
     email: true,
     nama: true,
     role: true,
     isActive: true,
+    ownerId: true,
   };
 }

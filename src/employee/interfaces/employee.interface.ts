@@ -6,4 +6,5 @@ export interface IEmployeeResponse {
   nama: string;
   role: UserRole;
   isActive: boolean;
+  ownerId: string;
 }

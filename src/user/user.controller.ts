@@ -61,11 +61,20 @@ export class UserController {
     };
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  @Auth()
+  @Patch()
+  async update(
+    @Req() request: any,
+    @Body() payload: UpdateUserDto,
+  ): Promise<IWebResponse<IUserResponse>> {
+    const auth: IAuth = request.user;
+    const result = await this.userService.update(auth, payload);
+    return {
+      status: 'success',
+      message: 'Profile Berhasil Diperbarui',
+      data: result,
+    };
   }
-
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.userService.remove(+id);

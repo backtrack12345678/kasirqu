@@ -22,7 +22,7 @@ export class ErrorFilter implements ExceptionFilter {
         ? exception.getResponse()['message']
         : 'Internal Server Error';
 
-    console.log(exception);
+    console.error(exception);
 
     response.status(statusCode).json({
       status: 'error',

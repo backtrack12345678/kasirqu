@@ -12,6 +12,7 @@ import {
   IUserResult,
 } from './interfaces/user.interface';
 import { RedisService } from '../common/redis/redis.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -34,12 +35,16 @@ export class UserService {
         id: `user-${uuid().toString()}`,
         ...userData,
       },
-      select: {
-        id: true,
-      },
+      select: this.userSelectCondition(USER_TYPES.PRIVATE),
     });
 
-    return user;
+    await this.redisService.set(
+      `user/profile:${user.id}`,
+      JSON.stringify(user),
+      900,
+    );
+
+    return { id: user.id };
   }
 
   findAll() {
@@ -47,11 +52,14 @@ export class UserService {
   }
 
   async findUserProfile(auth: IAuth): Promise<IUserResponse> {
-    const userCached = await this.getUserDataFromRedis<IUserResult>(
-      `user/profile:${auth.id}`,
-    );
+    const userCached = await this.redisService.get(`user/profile:${auth.id}`);
 
-    if (userCached) return this.toUserResponse(userCached);
+    if (userCached) {
+      if (userCached === '__NOT_FOUND__') {
+        this.errorService.notFound('Pengguna Tidak Ditemukan');
+      }
+      return this.toUserResponse(JSON.parse(userCached));
+    }
 
     const user: IUserResult = await this.prismaService.user.findUnique({
       where: {
@@ -61,6 +69,8 @@ export class UserService {
     });
 
     if (!user) {
+      // negative caching
+      this.redisService.set(`user/profile:${auth.id}`, '__NOT_FOUND__', 900);
       this.errorService.notFound('Pengguna Tidak Ditemukan');
     }
 
@@ -74,11 +84,14 @@ export class UserService {
   }
 
   async findOne(userId: string): Promise<IOneUser> {
-    const userCached = await this.getUserDataFromRedis<IOneUser>(
-      `user/find-one:${userId}`,
-    );
+    const userCached = await this.redisService.get(`user/find-one:${userId}`);
 
-    if (userCached) return userCached;
+    if (userCached) {
+      if (userCached === '__NOT_FOUND__') {
+        this.errorService.notFound('Pengguna Tidak Ditemukan');
+      }
+      return JSON.parse(userCached);
+    }
 
     const user: IOneUser = await this.prismaService.user.findUnique({
       where: {
@@ -88,6 +101,8 @@ export class UserService {
     });
 
     if (!user) {
+      // negative caching
+      this.redisService.set(`user/find-one:${userId}`, '__NOT_FOUND__', 900);
       this.errorService.notFound('Pengguna Tidak Ditemukan');
     }
 
@@ -100,8 +115,40 @@ export class UserService {
     return user;
   }
 
-  update(id: number, payload) {
-    return `This action updates a #${id} user`;
+  async update(auth: IAuth, payload: UpdateUserDto): Promise<IUserResponse> {
+    if (payload.kotaKabId)
+      await this.checkKotaKabupatenExists(payload.kotaKabId);
+
+    const user = await this.prismaService.user.update({
+      where: {
+        id: auth.id,
+      },
+      data: payload,
+      select: this.userSelectCondition(USER_TYPES.PRIVATE),
+    });
+
+    const userPublic = {
+      id: user.id,
+      nama: user.nama,
+    };
+
+    try {
+      await this.redisService.set(
+        `user/profile:${auth.id}`,
+        JSON.stringify(user),
+        900,
+      );
+      await this.redisService.set(
+        `user/find-one:${auth.id}`,
+        JSON.stringify(userPublic),
+        900,
+      );
+    } catch (error) {
+      await this.redisService.delete(`user/profile:${auth.id}`);
+      await this.redisService.delete(`user/find-one:${auth.id}`);
+    }
+
+    return this.toUserResponse(user);
   }
 
   remove(id: number) {
@@ -132,11 +179,16 @@ export class UserService {
       select: {
         id: true,
         role: true,
+        isActive: true,
       },
     });
 
     if (!user) {
       this.errorService.notFound('Pengguna Tidak Ditemukan');
+    }
+
+    if (!user.isActive) {
+      this.errorService.badRequest('Pengguna Sedang Ditangguhkan');
     }
 
     return user;

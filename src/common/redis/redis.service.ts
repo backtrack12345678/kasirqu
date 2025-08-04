@@ -21,9 +21,13 @@ export class RedisService implements OnModuleInit, OnModuleInit {
   }
 
   async set(key: string, value: string, ttlInSeconds?: number): Promise<void> {
-    await (ttlInSeconds
-      ? this.client.setex(key, ttlInSeconds, value)
-      : this.client.set(key, value));
+    try {
+      await (ttlInSeconds
+        ? this.client.setex(key, ttlInSeconds, value)
+        : this.client.set(key, value));
+    } catch (error) {
+      console.error(`Failed to set cache for key "${key}"`, error);
+    }
   }
 
   async get(key: string): Promise<string | null> {
