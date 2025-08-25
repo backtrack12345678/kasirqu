@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
-import { UpdateEmployeeDto } from './dto/update-employee.dto';
+// import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ErrorService } from '../common/error/error.service';
 import { IAuth } from '../auth/interfaces/auth.interface';

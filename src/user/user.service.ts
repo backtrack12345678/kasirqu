@@ -5,7 +5,6 @@ import { ErrorService } from '../common/error/error.service';
 import { OtpService } from '../otp/otp.service';
 import { v4 as uuid } from 'uuid';
 import { IAuth } from '../auth/interfaces/auth.interface';
-import { USER_TYPES } from './enum/user.enum';
 import {
   IOneUser,
   IUserResponse,
@@ -13,6 +12,7 @@ import {
 } from './interfaces/user.interface';
 import { RedisService } from '../common/redis/redis.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserRepository } from './repositories/user.repository';
 
 @Injectable()
 export class UserService {
@@ -21,6 +21,7 @@ export class UserService {
     private errorService: ErrorService,
     private otpService: OtpService,
     private redisService: RedisService,
+    private userRepo: UserRepository,
   ) {}
 
   async create(payload: CreateUserDto): Promise<{ id: string }> {
@@ -30,19 +31,15 @@ export class UserService {
     await this.verifyUnregisteredUser(userData.phone);
     await this.checkKotaKabupatenExists(userData.kotaKabId);
 
-    const user = await this.prismaService.user.create({
-      data: {
+    const user = await this.userRepo.createUser(
+      {
         id: `user-${uuid().toString()}`,
         ...userData,
       },
-      select: this.userSelectCondition(USER_TYPES.PRIVATE),
-    });
-
-    await this.redisService.set(
-      `user/profile:${user.id}`,
-      JSON.stringify(user),
-      900,
+      this.userSelectCondition,
     );
+
+    await this.redisService.set(`user:${user.id}`, JSON.stringify(user), 900);
 
     return { id: user.id };
   }
@@ -52,7 +49,7 @@ export class UserService {
   }
 
   async findUserProfile(auth: IAuth): Promise<IUserResponse> {
-    const userCached = await this.redisService.get(`user/profile:${auth.id}`);
+    const userCached = await this.redisService.get(`user:${auth.id}`);
 
     if (userCached) {
       if (userCached === '__NOT_FOUND__') {
@@ -61,91 +58,64 @@ export class UserService {
       return this.toUserResponse(JSON.parse(userCached));
     }
 
-    const user: IUserResult = await this.prismaService.user.findUnique({
-      where: {
-        id: auth.id,
-      },
-      select: this.userSelectCondition(USER_TYPES.PRIVATE),
-    });
+    const user: IUserResult = await this.userRepo.getUserById(
+      auth.id,
+      this.userSelectCondition,
+    );
 
     if (!user) {
       // negative caching
-      this.redisService.set(`user/profile:${auth.id}`, '__NOT_FOUND__', 900);
+      this.redisService.set(`user:${auth.id}`, '__NOT_FOUND__', 900);
       this.errorService.notFound('Pengguna Tidak Ditemukan');
     }
 
-    await this.redisService.set(
-      `user/profile:${auth.id}`,
-      JSON.stringify(user),
-      900,
-    );
+    await this.redisService.set(`user:${auth.id}`, JSON.stringify(user), 900);
 
     return this.toUserResponse(user);
   }
 
   async findOne(userId: string): Promise<IOneUser> {
-    const userCached = await this.redisService.get(`user/find-one:${userId}`);
+    const userCached = await this.redisService.get(`user/:${userId}`);
 
     if (userCached) {
       if (userCached === '__NOT_FOUND__') {
         this.errorService.notFound('Pengguna Tidak Ditemukan');
       }
-      return JSON.parse(userCached);
+
+      const user = JSON.parse(userCached);
+      return this.toUserPublicResponse(user);
     }
 
-    const user: IOneUser = await this.prismaService.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: this.userSelectCondition(USER_TYPES.PUBLIC),
-    });
+    const user: IUserResult = await this.userRepo.getUserById(
+      userId,
+      this.userSelectCondition,
+    );
 
     if (!user) {
       // negative caching
-      this.redisService.set(`user/find-one:${userId}`, '__NOT_FOUND__', 900);
+      this.redisService.set(`user:${userId}`, '__NOT_FOUND__', 900);
       this.errorService.notFound('Pengguna Tidak Ditemukan');
     }
 
-    await this.redisService.set(
-      `user/find-one:${userId}`,
-      JSON.stringify(user),
-      900,
-    );
+    await this.redisService.set(`user:${userId}`, JSON.stringify(user), 900);
 
-    return user;
+    return this.toUserPublicResponse(user);
   }
 
   async update(auth: IAuth, payload: UpdateUserDto): Promise<IUserResponse> {
     if (payload.kotaKabId)
       await this.checkKotaKabupatenExists(payload.kotaKabId);
 
-    const user = await this.prismaService.user.update({
-      where: {
-        id: auth.id,
-      },
-      data: payload,
-      select: this.userSelectCondition(USER_TYPES.PRIVATE),
-    });
-
-    const userPublic = {
-      id: user.id,
-      nama: user.nama,
-    };
+    const user = await this.userRepo.updateUserById(
+      auth.id,
+      payload,
+      this.userSelectCondition,
+    );
 
     try {
-      await this.redisService.set(
-        `user/profile:${auth.id}`,
-        JSON.stringify(user),
-        900,
-      );
-      await this.redisService.set(
-        `user/find-one:${auth.id}`,
-        JSON.stringify(userPublic),
-        900,
-      );
+      await this.redisService.set(`user/${auth.id}`, JSON.stringify(user), 900);
     } catch (error) {
-      await this.redisService.delete(`user/profile:${auth.id}`);
-      await this.redisService.delete(`user/find-one:${auth.id}`);
+      await this.redisService.delete(`user/${auth.id}`);
     }
 
     return this.toUserResponse(user);
@@ -160,11 +130,7 @@ export class UserService {
   // }
 
   async verifyUnregisteredUser(phone: string): Promise<void> {
-    const countPhone = await this.prismaService.user.count({
-      where: {
-        phone: phone,
-      },
-    });
+    const countPhone = await this.userRepo.countUserByPhone(phone);
 
     if (countPhone !== 0) {
       this.errorService.badRequest('Pengguna Sudah Terdaftar');
@@ -172,15 +138,10 @@ export class UserService {
   }
 
   async verifyRegisteredUser(phone: string) {
-    const user = await this.prismaService.user.findUnique({
-      where: {
-        phone: phone,
-      },
-      select: {
-        id: true,
-        role: true,
-        isActive: true,
-      },
+    const user = await this.userRepo.getUserByphone(phone, {
+      id: true,
+      role: true,
+      isActive: true,
     });
 
     if (!user) {
@@ -206,23 +167,19 @@ export class UserService {
     }
   }
 
-  private userSelectCondition(type: USER_TYPES) {
-    return {
-      id: true,
-      nama: true,
-      ...(type === USER_TYPES.PRIVATE && {
-        phone: true,
-        role: true,
-        kota_kab: {
-          select: {
-            id: true,
-            nama: true,
-          },
-        },
-        isActive: true,
-      }),
-    };
-  }
+  private userSelectCondition = {
+    id: true,
+    nama: true,
+    phone: true,
+    role: true,
+    kota_kab: {
+      select: {
+        id: true,
+        nama: true,
+      },
+    },
+    isActive: true,
+  };
 
   private toUserResponse(user: IUserResult): IUserResponse {
     const { kota_kab, ...userData } = user;
@@ -232,6 +189,13 @@ export class UserService {
         id: kota_kab.id,
         nama: kota_kab.nama,
       },
+    };
+  }
+
+  private toUserPublicResponse(user: IUserResult) {
+    return {
+      id: user.id,
+      nama: user.nama,
     };
   }
 

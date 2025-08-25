@@ -3,8 +3,6 @@ import { PrismaService } from './prisma/prisma.service';
 import { ErrorService } from './error/error.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
-import { createKeyv } from '@keyv/redis';
-import { Cacheable } from 'cacheable';
 import { RedisService } from './redis/redis.service';
 import { ErrorFilter } from './error/error.filter';
 

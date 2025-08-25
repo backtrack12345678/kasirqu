@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOTPDto, VerifyOTPDto } from './dto/create-otp.dto';
-import { UserService } from '../user/user.service';
-import { OTP_TYPES } from './enum/otp.enum';
 import { generate } from 'otp-generator';
 import { ErrorService } from '../common/error/error.service';
 import axios from 'axios';
