@@ -25,7 +25,6 @@ export class RegencyController {
     return this.regencyService.create(createRegencyDto);
   }
 
-  @Auth()
   @Get()
   async findAll(
     @Query() query: GetAllQueryDto,
