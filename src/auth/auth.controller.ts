@@ -14,6 +14,7 @@ import { Request, Response } from 'express';
 import { IWebResponse } from '../common/interfaces/web.interface';
 import { IAuth, ILogin } from './interfaces/auth.interface';
 import { Auth } from './decorator/auth.decorator';
+import { StatusResponse } from '../common/enums/web.enum';
 
 @Controller('auth')
 export class AuthController {
@@ -33,7 +34,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
     });
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       message: 'Login Berhasil',
       data: {
         accessToken: result.accessToken,
@@ -49,7 +50,7 @@ export class AuthController {
       request.cookies?.refresh_token,
     );
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       message: 'Access Token Berhasil Dibuat',
       data: {
         accessToken: result,
@@ -73,7 +74,7 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'production',
     });
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       message: 'Logout Berhasil',
       data: true,
     };

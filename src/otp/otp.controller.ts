@@ -11,6 +11,7 @@ import { OtpService } from './otp.service';
 import { CreateOTPDto, VerifyOTPDto } from './dto/create-otp.dto';
 import { OTP_TYPES } from './enum/otp.enum';
 import { IWebResponse } from '../common/interfaces/web.interface';
+import { StatusResponse } from '../common/enums/web.enum';
 
 @Controller('otp')
 export class OtpController {
@@ -22,7 +23,7 @@ export class OtpController {
   ): Promise<IWebResponse<boolean>> {
     const result = await this.otpService.createOTP(payload);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       message: result,
       data: true,
     };
@@ -33,7 +34,7 @@ export class OtpController {
     await this.otpService.verifyOTP(payload);
     const token = await this.otpService.generateTempToken(payload.phone);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       message: 'OTP Berhasil Terverifikasi',
       data: {
         token,

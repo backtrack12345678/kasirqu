@@ -15,6 +15,7 @@ import { Auth } from '../auth/decorator/auth.decorator';
 import { GetAllQueryDto } from './dto/get-regency.dto';
 import { IWebResponse } from '../common/interfaces/web.interface';
 import { IRegencyResponse } from './interfaces/regency.interface';
+import { StatusResponse } from '../common/enums/web.enum';
 
 @Controller('regency')
 export class RegencyController {
@@ -31,7 +32,7 @@ export class RegencyController {
   ): Promise<IWebResponse<IRegencyResponse[]>> {
     const result = await this.regencyService.findAll(query);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       data: result,
     };
   }

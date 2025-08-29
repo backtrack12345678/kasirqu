@@ -33,8 +33,16 @@ export class EmployeeService {
     return employee;
   }
 
-  findAll() {
-    return `This action returns all employee`;
+  async findAll(auth: IAuth): Promise<IEmployeeResponse[]> {
+    const ownerId = auth.id;
+    const employees = await this.prismaService.employee.findMany({
+      where: {
+        ownerId,
+      },
+      select: this.employeeSelectCondition,
+    });
+
+    return employees;
   }
 
   async findOne(auth: IAuth, employeeId: string): Promise<IEmployeeResponse> {

@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { StatusResponse } from '../enums/web.enum';
 
 @Catch()
 export class ErrorFilter implements ExceptionFilter {
@@ -25,7 +26,7 @@ export class ErrorFilter implements ExceptionFilter {
     console.error(exception);
 
     response.status(statusCode).json({
-      status: 'error',
+      status: StatusResponse.ERROR,
       message: message,
     });
   }

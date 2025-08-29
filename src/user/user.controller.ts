@@ -15,6 +15,7 @@ import { IWebResponse } from '../common/interfaces/web.interface';
 import { Auth } from '../auth/decorator/auth.decorator';
 import { IAuth } from '../auth/interfaces/auth.interface';
 import { IOneUser, IUserResponse } from './interfaces/user.interface';
+import { StatusResponse } from '../common/enums/web.enum';
 
 @Controller('user')
 export class UserController {
@@ -26,7 +27,7 @@ export class UserController {
   ): Promise<IWebResponse<{ id: string }>> {
     const result = await this.userService.create(payload);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       message: 'Registrasi Pengguna Berhasil',
       data: result,
     };
@@ -45,7 +46,7 @@ export class UserController {
     const auth: IAuth = request.user;
     const result: IUserResponse = await this.userService.findUserProfile(auth);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       data: result,
     };
   }
@@ -56,7 +57,7 @@ export class UserController {
   ): Promise<IWebResponse<IOneUser>> {
     const result = await this.userService.findOne(userId);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       data: result,
     };
   }
@@ -70,7 +71,7 @@ export class UserController {
     const auth: IAuth = request.user;
     const result = await this.userService.update(auth, payload);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       message: 'Profile Berhasil Diperbarui',
       data: result,
     };

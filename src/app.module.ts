@@ -8,9 +8,13 @@ import { EmployeeModule } from './employee/employee.module';
 import { OtpModule } from './otp/otp.module';
 import { ProductModule } from './product/product.module';
 import { RegencyModule } from './regency/regency.module';
+import { CategoryModule } from './category/category.module';
+import { FileModule } from './file/file.module';
+import { OrderBookModule } from './order-book/order-book.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
-  imports: [CommonModule, UserModule, AuthModule, EmployeeModule, OtpModule, ProductModule, RegencyModule],
+  imports: [CommonModule, UserModule, AuthModule, EmployeeModule, OtpModule, ProductModule, RegencyModule, CategoryModule, FileModule, OrderBookModule, OrderModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -13,6 +13,16 @@ enum UserRole {
   WAITER
 }
 
+enum OrderBookStatus {
+  BUKA
+  TUTUP
+}
+
+enum OrderStatus {
+  PENDING
+  DIBAYAR
+}
+
 model User {
   id         String         @id @db.VarChar(150)
   phone      String         @unique @db.VarChar(20)
@@ -27,6 +37,9 @@ model User {
   updatedAt    DateTime?      @updatedAt @map("updated_at")
   refreshToken Refresh_Token?
   employees    Employee[]
+  categories   Category[]
+  products     Product[]
+  orderBooks   OrderBook[]
 
   @@map("user")
 }
@@ -57,6 +70,91 @@ model Kota_Kabupaten {
   user      User[]
 
   @@map("kota_kabupaten")
+}
+
+model Product {
+  id         Int      @id @default(autoincrement())
+  nama       String   @db.VarChar(100)
+  harga      Decimal  @db.Decimal(18, 2)
+  modal      Decimal? @db.Decimal(18, 2)
+  jumlah     Int
+  categoryId Int      @map("category_id")
+  category   Category @relation(fields: [categoryId], references: [id])
+  ownerId    String   @map("owner_id") @db.VarChar(150)
+  owner      User     @relation(fields: [ownerId], references: [id])
+  namaFile   String   @map("nama_file") @db.VarChar(150)
+  path       String   @db.VarChar(150)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("product")
+}
+
+model Category {
+  id      Int    @id @default(autoincrement())
+  nama    String @db.VarChar(100)
+  ownerId String @map("owner_id") @db.VarChar(150)
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  products  Product[]
+
+  @@map("category")
+}
+
+model OrderBook {
+  id     Int             @id @default(autoincrement())
+  status OrderBookStatus @default(BUKA)
+
+  ownerId String @map("owner_id") @db.VarChar(150)
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  orders    Order[]
+
+  @@map("order_book")
+}
+
+model Order {
+  id String @id @db.VarChar(150)
+
+  createdBy String   @db.VarChar(100)
+  role      UserRole
+
+  customer String      @db.VarChar(100)
+  status   OrderStatus @default(PENDING)
+
+  totalHarga Decimal @db.Decimal(18, 2)
+  totalModal Decimal @db.Decimal(18, 2)
+
+  orderBookId Int       @map("order_book_id")
+  book        OrderBook @relation(fields: [orderBookId], references: [id])
+
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime?      @updatedAt @map("updated_at")
+  products  OrderProduct[]
+
+  @@map("order")
+}
+
+model OrderProduct {
+  id Int @id @default(autoincrement())
+
+  nama   String  @db.VarChar(100)
+  harga  Decimal @db.Decimal(18, 2)
+  modal  Decimal @db.Decimal(18, 2)
+  jumlah Int
+
+  orderId String @db.VarChar(150)
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("order_product")
 }
 
 model Refresh_Token {

@@ -17,6 +17,7 @@ import { UserRole } from '@prisma/client';
 import { IAuth } from '../auth/interfaces/auth.interface';
 import { IEmployeeResponse } from './interfaces/employee.interface';
 import { IWebResponse } from '../common/interfaces/web.interface';
+import { StatusResponse } from '../common/enums/web.enum';
 
 @Controller('employee')
 export class EmployeeController {
@@ -31,15 +32,24 @@ export class EmployeeController {
   ): Promise<IWebResponse<IEmployeeResponse>> {
     const result = await this.employeeService.create(request.user, payload);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       message: 'Karyawan Berhasil Ditambahkan',
       data: result,
     };
   }
 
+  @Auth()
+  @Roles(UserRole.OWNER)
   @Get()
-  findAll() {
-    return this.employeeService.findAll();
+  async findAll(
+    @Req() request: any,
+  ): Promise<IWebResponse<IEmployeeResponse[]>> {
+    const auth: IAuth = request.user;
+    const result = await this.employeeService.findAll(auth);
+    return {
+      status: StatusResponse.SUCCESS,
+      data: result,
+    };
   }
 
   @Auth()
@@ -52,7 +62,7 @@ export class EmployeeController {
     const auth: IAuth = request.user;
     const result = await this.employeeService.findOne(auth, employeeId);
     return {
-      status: 'success',
+      status: StatusResponse.SUCCESS,
       data: result,
     };
   }
