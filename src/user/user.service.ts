@@ -141,6 +141,7 @@ export class UserService {
     const user = await this.userRepo.getUserByphone(phone, {
       id: true,
       role: true,
+      nama: true,
       isActive: true,
     });
 

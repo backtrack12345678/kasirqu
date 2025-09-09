@@ -1,62 +1,231 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
-import { OrderBookService } from '../order-book/order-book.service';
+import { PaymentOrderDto, UpdateOrderDto } from './dto/update-order.dto';
+import { CashBookService } from '../cash-book/cash-book.service';
 import { IAuth } from '../auth/interfaces/auth.interface';
-import { OrderBookStatus } from '@prisma/client';
+import { CashBookStatus, OrderStatus, Prisma, UserRole } from '@prisma/client';
 import { OrderRepository } from './repositories/order.repository';
 import { ErrorService } from '../common/error/error.service';
 import { v4 as uuid } from 'uuid';
 import { ProductService } from '../product/product.service';
+import { UserService } from '../user/user.service';
+import Decimal from 'decimal.js';
+import { GetOrdersQueryDto } from './dto/get-order.dto';
 
 @Injectable()
 export class OrderService {
   constructor(
-    private orderBookService: OrderBookService,
+    private cashBookService: CashBookService,
     private orderRepo: OrderRepository,
     private errorService: ErrorService,
     private productService: ProductService,
+    private userService: UserService,
   ) {}
 
   async create(auth: IAuth, payload: CreateOrderDto) {
-    const ownerId = auth.id;
-    // const { products, ...orderPayload } = payload;
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+    const { products, ...orderPayload } = payload;
 
-    // const ids = products.map((p) => p.id);
+    const ids = products.map((p) => p.id);
 
-    // if (new Set(ids).size !== ids.length) {
-    //   this.errorService.badRequest('id product ada yang duplikat');
-    // }
+    if (new Set(ids).size !== ids.length) {
+      this.errorService.badRequest('id product ada yang duplikat');
+    }
 
-    // const orderBook = this.orderBookService.findOneByOwnerIdAndStatus(
-    //   ownerId,
-    //   OrderBookStatus.BUKA,
-    // );
+    const dbProducts = await this.productService.findAllByIds(ids, ownerId);
 
-    // const id = `user-${uuid().toString()}`;
+    if (dbProducts.length !== ids.length) {
+      this.errorService.badRequest(
+        'Beberapa Produk tidak ditemukan atau milik pengguna lain',
+      );
+    }
 
-    // const order = await this.orderRepo.createOrder({
-    //   id,
-    //   ...orderPayload,
-    //   products : {
-    //     createMany:
-    //   }
-    // });
+    const cashBook = await this.cashBookService.findOneByOwnerIdAndStatus(
+      ownerId,
+      CashBookStatus.BUKA,
+    );
+
+    if (!cashBook) {
+      this.errorService.badRequest(
+        'Buku Kas Tidak Ada, Silahkan Buat Terlebih Dahulu',
+      );
+    }
+
+    const id = `order-${uuid().toString()}`;
+
+    const order = await this.orderRepo.createOrder(
+      {
+        id,
+        ...orderPayload,
+        createdBy: {
+          connect: {
+            id: auth.id,
+          },
+        },
+        createdName: auth.nama,
+        createdRole: auth.role,
+        totalHarga: Prisma.Decimal(1),
+        products: {
+          createMany: {
+            data: dbProducts,
+          },
+        },
+        book: { connect: { id: cashBook.id } },
+      },
+      this.toOrderSelectOptions,
+    );
+
+    return this.toOrderResponse(order);
   }
 
-  findAll() {
-    return `This action returns all order`;
+  async findAll(auth: IAuth, query: GetOrdersQueryDto) {
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+
+    const orders = await this.orderRepo.getOrders(
+      this.toOrderSelectOptions,
+      {
+        book: {
+          ownerId,
+          id: query.bookId || undefined,
+        },
+      },
+      {
+        take: query.size,
+        ...(query.cursor && {
+          skip: 1,
+          cursor: {
+            id: query.cursor,
+          },
+        }),
+      },
+    );
+
+    return orders.map((order) => this.toOrderResponse(order));
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} order`;
+  async findOne(auth: IAuth, id: string) {
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+
+    const order = await this.orderRepo.getOrderById(id, {
+      ...this.toOrderSelectOptions,
+      book: {
+        select: {
+          ownerId: true,
+        },
+      },
+    });
+
+    if (!order || order.book.ownerId !== ownerId) {
+      this.errorService.notFound('Pesanan Tidak Ditemukan');
+    }
+
+    if (auth.role === UserRole.WAITER && auth.id !== order.createdId) {
+      this.errorService.forbidden(
+        'Tidak bisa melihat pesanan yang dibuat waiter lain',
+      );
+    }
+
+    return this.toOrderResponse(order);
   }
 
   update(id: number, updateOrderDto: UpdateOrderDto) {
     return `This action updates a #${id} order`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} order`;
+  async remove(auth: IAuth, id: string) {
+    const order = await this.findOne(auth, id);
+
+    if ([OrderStatus.DITERIMA, OrderStatus.DIBAYAR].includes(order.status)) {
+      this.errorService.badRequest(
+        `Pesanan Sudah ${order.status} Tidak Bisa Diapus`,
+      );
+    }
+
+    await this.orderRepo.deleteOrderById(id, {
+      id: true,
+    });
+  }
+
+  async payment(auth: IAuth, id: string, payload: PaymentOrderDto) {
+    const order = await this.findOne(auth, id);
+
+    if ([OrderStatus.DIBAYAR].includes(order.status)) {
+      this.errorService.badRequest(`Pesanan Sudah ${order.status}`);
+    }
+
+    const totalPaid = new Decimal(payload.totalPaid);
+    const totalPrice = new Decimal(order.totalPrice);
+
+    if (totalPaid.lt(totalPrice)) {
+      this.errorService.badRequest(
+        'Uang Yang Dibayarkan Kurang Dari Total Harga',
+      );
+    }
+
+    const change = totalPaid.minus(totalPrice).toString();
+
+    const orderPayment = await this.orderRepo.updateOrderById(
+      id,
+      {
+        payments: {
+          create: {
+            jumlah: Prisma.Decimal(totalPrice),
+            receivedId: auth.id,
+            receivedName: auth.nama,
+            receivedRole: auth.role,
+          },
+        },
+      },
+      this.toOrderSelectOptions,
+    );
+
+    return {
+      ...this.toOrderResponse(orderPayment),
+      totalBayar: totalPaid.toString(),
+      kembalian: change,
+    };
+  }
+
+  toOrderPaymentSelectOptions = {
+    id: true,
+    metode: true,
+    jumlah: true,
+    receivedId: true,
+    receivedName: true,
+    receivedRole: true,
+    createdAt: true,
+    updatedAt: true,
+  };
+
+  toOrderSelectOptions = {
+    id: true,
+    customer: true,
+    status: true,
+    totalHarga: true,
+    createdId: true,
+    createdName: true,
+    createdRole: true,
+    createdAt: true,
+    updatedAt: true,
+    payments: {
+      select: this.toOrderPaymentSelectOptions,
+    },
+  };
+
+  toOrderResponse(order) {
+    const { payments, totalHarga, ...orderData } = order;
+    return {
+      ...orderData,
+      totalHarga: totalHarga.toString(),
+      payments: payments.map((payment) => this.toOrderPaymentResponse(payment)),
+    };
+  }
+
+  toOrderPaymentResponse(payment) {
+    const { jumlah, ...paymentData } = payment;
+    return {
+      ...paymentData,
+      jumlah: jumlah.toString(),
+    };
   }
 }

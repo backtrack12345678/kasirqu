@@ -13,14 +13,29 @@ enum UserRole {
   WAITER
 }
 
-enum OrderBookStatus {
+enum CashBookStatus {
   BUKA
   TUTUP
 }
 
 enum OrderStatus {
   PENDING
+  DITERIMA
   DIBAYAR
+  DIBATALKAN
+}
+
+enum TransactionType {
+  PENJUALAN
+  PEMBELIAN
+  MODAL
+}
+
+enum OrderMethodPayment {
+  CASH
+  TRANSFER
+  EWALLET
+  QRIS
 }
 
 model User {
@@ -39,7 +54,7 @@ model User {
   employees    Employee[]
   categories   Category[]
   products     Product[]
-  orderBooks   OrderBook[]
+  cashBooks    CashBook[]
 
   @@map("user")
 }
@@ -54,8 +69,10 @@ model Employee {
   ownerId  String   @map("owner_id") @db.VarChar(150)
   owner    User     @relation(fields: [ownerId], references: [id])
 
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime? @updatedAt @map("updated_at")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime?      @updatedAt @map("updated_at")
+  orders    Order[]
+  payments  OrderPayment[]
 
   @@map("employee")
 }
@@ -104,40 +121,71 @@ model Category {
   @@map("category")
 }
 
-model OrderBook {
-  id     Int             @id @default(autoincrement())
-  status OrderBookStatus @default(BUKA)
+model CashBook {
+  id String @id @db.VarChar(150)
+
+  saldoTunai Decimal        @db.Decimal(18, 2)
+  status     CashBookStatus @default(BUKA)
 
   ownerId String @map("owner_id") @db.VarChar(150)
   owner   User   @relation(fields: [ownerId], references: [id])
+
+  createdId   String   @db.VarChar(150)
+  createdName String   @db.VarChar(100)
+  createdRole UserRole
+
+  closedId   String?   @db.VarChar(150)
+  closedName String?   @db.VarChar(100)
+  cloedRole  UserRole?
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime? @updatedAt @map("updated_at")
   orders    Order[]
 
-  @@map("order_book")
+  @@map("cash_book")
 }
 
 model Order {
   id String @id @db.VarChar(150)
 
-  createdBy String   @db.VarChar(100)
-  role      UserRole
+  customer   String      @db.VarChar(100)
+  status     OrderStatus @default(PENDING)
+  totalHarga Decimal     @db.Decimal(18, 2)
 
-  customer String      @db.VarChar(100)
-  status   OrderStatus @default(PENDING)
+  createdId   String?   @db.VarChar(150)
+  createdName String?   @db.VarChar(100)
+  createdRole UserRole?
+  createdBy   Employee? @relation(fields: [createdId], references: [id])
 
-  totalHarga Decimal @db.Decimal(18, 2)
-  totalModal Decimal @db.Decimal(18, 2)
-
-  orderBookId Int       @map("order_book_id")
-  book        OrderBook @relation(fields: [orderBookId], references: [id])
+  cashBookId String   @map("order_book_id") @db.VarChar(150)
+  book       CashBook @relation(fields: [cashBookId], references: [id])
 
   createdAt DateTime       @default(now()) @map("created_at")
   updatedAt DateTime?      @updatedAt @map("updated_at")
   products  OrderProduct[]
+  payments  OrderPayment[]
 
   @@map("order")
+}
+
+model OrderPayment {
+  id Int @id @default(autoincrement())
+
+  metode OrderMethodPayment @default(CASH)
+  jumlah Decimal            @db.Decimal(18, 2)
+
+  receivedId   String   @db.VarChar(150)
+  receivedName String   @db.VarChar(100)
+  receivedRole UserRole
+  receivedBy   Employee @relation(fields: [receivedId], references: [id], onDelete: Cascade)
+
+  orderId String @db.VarChar(150)
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("order_payment")
 }
 
 model OrderProduct {
@@ -149,7 +197,7 @@ model OrderProduct {
   jumlah Int
 
   orderId String @db.VarChar(150)
-  order   Order  @relation(fields: [orderId], references: [id])
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime? @updatedAt @map("updated_at")
