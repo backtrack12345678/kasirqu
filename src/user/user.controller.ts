@@ -16,6 +16,8 @@ import { Auth } from '../auth/decorator/auth.decorator';
 import { IAuth } from '../auth/interfaces/auth.interface';
 import { IOneUser, IUserResponse } from './interfaces/user.interface';
 import { StatusResponse } from '../common/enums/web.enum';
+import { Roles } from '../auth/decorator/role.decorator';
+import { UserRole } from '@prisma/client';
 
 @Controller('user')
 export class UserController {
@@ -39,6 +41,7 @@ export class UserController {
   }
 
   @Auth()
+  @Roles(UserRole.OWNER)
   @Get('profile')
   async findUserProfile(
     @Req() request: any,

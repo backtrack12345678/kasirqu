@@ -5,9 +5,10 @@ import { AuthGuard } from './guards/auth.guard';
 import { OtpModule } from '../otp/otp.module';
 import { UserModule } from '../user/user.module';
 import { RoleGuard } from './guards/role.guard';
+import { EmployeeModule } from '../employee/employee.module';
 
 @Module({
-  imports: [OtpModule, UserModule],
+  imports: [OtpModule, UserModule, EmployeeModule],
   controllers: [AuthController],
   providers: [
     AuthService,

@@ -1,3 +1,4 @@
+import { Employee } from './../../node_modules/.prisma/client/index.d';
 import {
   Controller,
   Get,
@@ -9,12 +10,13 @@ import {
   Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/create-auth.dto';
+import { LoginDto, LoginEmployeeDto } from './dto/create-auth.dto';
 import { Request, Response } from 'express';
 import { IWebResponse } from '../common/interfaces/web.interface';
 import { IAuth, ILogin } from './interfaces/auth.interface';
 import { Auth } from './decorator/auth.decorator';
 import { StatusResponse } from '../common/enums/web.enum';
+import { UserRole } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -42,8 +44,47 @@ export class AuthController {
     };
   }
 
+  @Post('employee')
+  async loginEmployee(
+    @Body() payload: LoginEmployeeDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.loginEmployee(payload);
+    response.cookie('refresh_token', result.refreshToken, {
+      path: '/',
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      sameSite: 'none',
+      secure: process.env.NODE_ENV === 'production',
+    });
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Login Berhasil',
+      data: {
+        accessToken: result.accessToken,
+      },
+    };
+  }
+
   @Post('refresh-token')
   async updateAccessToken(
+    @Req() request: Request,
+  ): Promise<IWebResponse<ILogin>> {
+    const result = await this.authService.updateAccessToken(
+      request.cookies?.refresh_token,
+      UserRole.OWNER,
+    );
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Access Token Berhasil Dibuat',
+      data: {
+        accessToken: result,
+      },
+    };
+  }
+
+  @Post('refresh-token/employee')
+  async updateAccessTokenEmployee(
     @Req() request: Request,
   ): Promise<IWebResponse<ILogin>> {
     const result = await this.authService.updateAccessToken(

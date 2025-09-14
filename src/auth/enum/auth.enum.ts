@@ -1,4 +1,4 @@
-export enum AUTH_TOKEN {
+export enum AuthToken {
   ACCESS_TOKEN = 'accessToken',
   REFRESH_TOKEN = 'refreshToken',
 }

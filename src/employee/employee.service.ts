@@ -6,6 +6,7 @@ import { ErrorService } from '../common/error/error.service';
 import { IAuth } from '../auth/interfaces/auth.interface';
 import { v4 as uuid } from 'uuid';
 import { IEmployeeResponse } from './interfaces/employee.interface';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class EmployeeService {
@@ -21,11 +22,16 @@ export class EmployeeService {
     await this.checkEmployeeLimit(auth.id);
     await this.checkIsEmployeeExist(payload.email);
 
+    const { password, ...employeeData } = payload;
+    const id = `employee-${uuid().toString()}`;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const employee = await this.prismaService.employee.create({
       data: {
-        id: `employee-${uuid().toString()}`,
+        id,
         ownerId: auth.id,
-        ...payload,
+        ...employeeData,
+        password: hashedPassword,
       },
       select: this.employeeSelectCondition,
     });
@@ -45,8 +51,43 @@ export class EmployeeService {
     return employees;
   }
 
+  async profile(auth: IAuth): Promise<IEmployeeResponse> {
+    const employee = await this.findOneById(auth.id);
+
+    if (!employee) {
+      this.errorService.notFound('Karyawan Tidak Ditemukan');
+    }
+
+    return employee;
+  }
+
   async findOne(auth: IAuth, employeeId: string): Promise<IEmployeeResponse> {
     const employee = await this.checkEmployeeOwner(employeeId, auth.id);
+    return employee;
+  }
+
+  async findOneByEmail(email: string): Promise<IEmployeeResponse> {
+    const employee = await this.prismaService.employee.findUnique({
+      where: {
+        email,
+      },
+      select: {
+        ...this.employeeSelectCondition,
+        password: true,
+      },
+    });
+
+    return employee;
+  }
+
+  async findOneById(id: string): Promise<IEmployeeResponse> {
+    const employee = await this.prismaService.employee.findUnique({
+      where: {
+        id,
+      },
+      select: this.employeeSelectCondition,
+    });
+
     return employee;
   }
 
@@ -95,12 +136,8 @@ export class EmployeeService {
       select: this.employeeSelectCondition,
     });
 
-    if (!employee) {
+    if (!employee || ownerId !== employee.ownerId) {
       this.errorService.notFound('Karyawan Tidak Ditemukan');
-    }
-
-    if (ownerId !== employee.ownerId) {
-      this.errorService.forbidden('Tidak Diizinkan Mengakses Karyawan Ini');
     }
 
     return employee;

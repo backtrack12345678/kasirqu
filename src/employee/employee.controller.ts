@@ -53,6 +53,18 @@ export class EmployeeController {
   }
 
   @Auth()
+  @Roles(UserRole.CASHIER, UserRole.WAITER)
+  @Get('profile')
+  async profile(@Req() request: any): Promise<IWebResponse<IEmployeeResponse>> {
+    const auth: IAuth = request.user;
+    const result = await this.employeeService.profile(auth);
+    return {
+      status: StatusResponse.SUCCESS,
+      data: result,
+    };
+  }
+
+  @Auth()
   @Roles(UserRole.OWNER)
   @Get(':employeeId')
   async findOne(

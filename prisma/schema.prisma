@@ -64,7 +64,7 @@ model Employee {
   email    String   @unique @db.VarChar(200)
   nama     String   @db.VarChar(100)
   role     UserRole
-  password String   @db.VarChar(20)
+  password String   @db.VarChar(100)
   isActive Boolean  @default(true) @map("is_active")
   ownerId  String   @map("owner_id") @db.VarChar(150)
   owner    User     @relation(fields: [ownerId], references: [id])
