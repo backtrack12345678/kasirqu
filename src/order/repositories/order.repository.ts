@@ -66,4 +66,13 @@ export class OrderRepository {
       select: selectOptions || undefined,
     });
   }
+
+  async sumOrder(whereOptions: Prisma.OrderWhereInput) {
+    return this.prismaService.order.aggregate({
+      where: whereOptions,
+      _sum: {
+        totalHarga: true,
+      },
+    });
+  }
 }

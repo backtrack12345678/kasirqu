@@ -10,7 +10,7 @@ import { v4 as uuid } from 'uuid';
 import { ProductService } from '../product/product.service';
 import { UserService } from '../user/user.service';
 import Decimal from 'decimal.js';
-import { GetOrdersQueryDto } from './dto/get-order.dto';
+import { GetOrdersQueryDto, GetTotalOrdersQueryDto } from './dto/get-order.dto';
 
 @Injectable()
 export class OrderService {
@@ -184,6 +184,40 @@ export class OrderService {
       totalBayar: totalPaid.toString(),
       kembalian: change,
     };
+  }
+
+  async totalPaid(auth: IAuth, query: GetTotalOrdersQueryDto): Promise<string> {
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+
+    const now = new Date();
+    const { start, end } = this.getRange(query.type, now);
+
+    const total = await this.orderRepo.sumOrder({
+      book: {
+        ownerId: ownerId,
+      },
+      status: OrderStatus.DIBAYAR,
+      createdAt: { gte: start, lte: end },
+    });
+
+    return total._sum.totalHarga.toString();
+  }
+
+  private getRange(type: 'day' | 'month', now: Date) {
+    const start = new Date(now);
+    const end = new Date(now);
+
+    if (type === 'day') {
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+    } else {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(end.getMonth() + 1, 0);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    return { start, end };
   }
 
   toOrderPaymentSelectOptions = {

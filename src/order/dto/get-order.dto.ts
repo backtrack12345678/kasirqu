@@ -1,5 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsNumber, IsPositive } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsPositive,
+  IsIn,
+} from 'class-validator';
 
 export class GetOrdersQueryDto {
   @IsOptional()
@@ -15,4 +21,10 @@ export class GetOrdersQueryDto {
   @IsOptional()
   @IsString()
   bookId: string;
+}
+
+export class GetTotalOrdersQueryDto {
+  @IsOptional()
+  @IsIn(['day', 'month'], { message: 'type must be either day or month' })
+  type?: string = 'day'; // default day
 }

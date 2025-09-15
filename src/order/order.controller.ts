@@ -18,7 +18,8 @@ import { Auth } from '../auth/decorator/auth.decorator';
 import { Roles } from '../auth/decorator/role.decorator';
 import { UserRole } from '@prisma/client';
 import { StatusResponse } from '../common/enums/web.enum';
-import { GetOrdersQueryDto } from './dto/get-order.dto';
+import { GetOrdersQueryDto, GetTotalOrdersQueryDto } from './dto/get-order.dto';
+import { IWebResponse } from '../common/interfaces/web.interface';
 
 @Controller('order')
 export class OrderController {
@@ -43,6 +44,20 @@ export class OrderController {
   async findAll(@Req() request: any, @Query() query: GetOrdersQueryDto) {
     const auth: IAuth = request.user;
     const result = await this.orderService.findAll(auth, query);
+    return {
+      status: StatusResponse.SUCCESS,
+      data: result,
+    };
+  }
+
+  @Auth()
+  @Get('total')
+  async totalPaid(
+    @Req() request: any,
+    @Query() query: GetTotalOrdersQueryDto,
+  ): Promise<IWebResponse<string>> {
+    const auth: IAuth = request.user;
+    const result = await this.orderService.totalPaid(auth, query);
     return {
       status: StatusResponse.SUCCESS,
       data: result,
