@@ -36,6 +36,8 @@ export class AuthGuard implements CanActivate {
       request['user'] = {
         id: payload.id,
         role: payload.role,
+        nama: payload.nama || undefined,
+        ownerId: payload.ownerId || undefined,
       };
     } catch (error) {
       this.errorService.unauthorized('Kredensial Tidak Valid');

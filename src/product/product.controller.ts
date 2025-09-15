@@ -63,7 +63,6 @@ export class ProductController {
   }
 
   @Auth()
-  @Roles(UserRole.OWNER)
   @Get()
   async findAll(@Req() request: any) {
     const result = await this.productService.findAll(request);
