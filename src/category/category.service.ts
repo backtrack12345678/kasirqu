@@ -4,6 +4,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { IAuth } from '../auth/interfaces/auth.interface';
 import { CategoryRepository } from './repositories/category.repository';
 import { ErrorService } from '../common/error/error.service';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class CategoryService {
@@ -27,7 +28,8 @@ export class CategoryService {
   }
 
   async findAll(auth: IAuth) {
-    const ownerId: string = auth.id;
+    const ownerId: string =
+      auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
     const categories = await this.categoryRepo.getCategories(
       this.categorySelectOptions,

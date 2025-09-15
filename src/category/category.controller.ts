@@ -35,7 +35,6 @@ export class CategoryController {
   }
 
   @Auth()
-  @Roles(UserRole.OWNER)
   @Get()
   async findAll(@Req() request: any) {
     const auth: IAuth = request.user;
