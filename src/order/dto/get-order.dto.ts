@@ -26,5 +26,5 @@ export class GetOrdersQueryDto {
 export class GetTotalOrdersQueryDto {
   @IsOptional()
   @IsIn(['day', 'month'], { message: 'type must be either day or month' })
-  type?: string = 'day'; // default day
+  type?: 'day' | 'month' = 'day'; // default day
 }
