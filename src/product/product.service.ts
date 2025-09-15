@@ -61,6 +61,7 @@ export class ProductService {
   async findAllByIds(ids: number[], ownerId: string) {
     const products = await this.productRepo.getProducts(
       {
+        id: true,
         nama: true,
         jumlah: true,
         harga: true,

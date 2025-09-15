@@ -51,10 +51,11 @@ export class OrderService {
       );
     }
 
-    const totalHarga = dbProducts.reduce(
-      (acc, p) => acc.add(p.harga.mul(p.jumlah)),
-      new Prisma.Decimal(0),
-    );
+    const totalHarga = payload.products.reduce((acc, p) => {
+      const product = dbProducts.find((d) => d.id === p.id);
+      if (!product) return acc;
+      return acc.add(product.harga.mul(p.quantity));
+    }, new Prisma.Decimal(0));
 
     const id = `order-${uuid().toString()}`;
 
