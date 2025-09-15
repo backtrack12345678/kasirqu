@@ -38,6 +38,17 @@ enum OrderMethodPayment {
   QRIS
 }
 
+enum SubscriptionStore {
+  APP_STORE
+  PLAY_STORE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+}
+
 model User {
   id         String         @id @db.VarChar(150)
   phone      String         @unique @db.VarChar(20)
@@ -48,13 +59,15 @@ model User {
   isActive   Boolean        @default(true) @map("is_active")
   acceptTerm Boolean        @map("accept_term")
 
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime?      @updatedAt @map("updated_at")
-  refreshToken Refresh_Token?
-  employees    Employee[]
-  categories   Category[]
-  products     Product[]
-  cashBooks    CashBook[]
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime?             @updatedAt @map("updated_at")
+  refreshToken        Refresh_Token?
+  employees           Employee[]
+  categories          Category[]
+  products            Product[]
+  cashBooks           CashBook[]
+  subscriptions       UserSubscriptions[]
+  subscriptionHistory SubscriptionHistory[]
 
   @@map("user")
 }
@@ -136,7 +149,7 @@ model CashBook {
 
   closedId   String?   @db.VarChar(150)
   closedName String?   @db.VarChar(100)
-  cloedRole  UserRole?
+  closedRole UserRole?
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime? @updatedAt @map("updated_at")
@@ -203,6 +216,48 @@ model OrderProduct {
   updatedAt DateTime? @updatedAt @map("updated_at")
 
   @@map("order_product")
+}
+
+model UserSubscriptions {
+  id String @id @db.VarChar(150)
+
+  ownerId String @map("owner_id") @db.VarChar(150)
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  productId String             @db.VarChar(100)
+  store     SubscriptionStore
+  status    SubscriptionStatus
+  autoRenew Boolean
+
+  purchasedAt DateTime  @map("purchased_at")
+  expiredAt   DateTime  @map("expired_at")
+  canceledAt  DateTime? @map("canceled_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+
+  @@unique([ownerId, productId])
+  @@map("user_subscriptions")
+}
+
+model SubscriptionHistory {
+  id String @id @db.VarChar(150)
+
+  ownerId String @map("owner_id") @db.VarChar(150)
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  productId String             @db.VarChar(100)
+  price     Decimal?           @db.Decimal(18, 2)
+  currency  String?            @db.VarChar(10)
+  event     String
+  store     SubscriptionStore
+  status    SubscriptionStatus
+  autoRenew Boolean
+
+  purchasedAt DateTime  @map("purchased_at")
+  expiredAt   DateTime  @map("expired_at")
+  canceledAt  DateTime? @map("canceled_at")
+  updatedAt   DateTime? @updatedAt @map("updated_at")
+
+  @@map("SubscriptionHistory")
 }
 
 model Refresh_Token {
