@@ -105,7 +105,7 @@ export class CashBookService {
         status: CashBookStatus.TUTUP,
         closedId: auth.id,
         closedName: auth.nama,
-        cloedRole: auth.role,
+        closedRole: auth.role,
       },
       this.cashBookSelectOptions,
     );
@@ -128,7 +128,7 @@ export class CashBookService {
     createdRole: true,
     closedId: true,
     closedName: true,
-    cloedRole: true,
+    closedRole: true,
     createdAt: true,
     updatedAt: true,
   };
