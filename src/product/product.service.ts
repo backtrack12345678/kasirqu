@@ -4,7 +4,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { IAuth } from '../auth/interfaces/auth.interface';
 import { ProductRepository } from './repositories/product.repository';
 import { CategoryService } from '../category/category.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
 import { FileService } from '../file/file.service';
 import { Request } from 'express';
 
@@ -46,7 +46,7 @@ export class ProductService {
 
   async findAll(request: any) {
     const auth: IAuth = request.user;
-    const ownerId = auth.id;
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
     const products = await this.productRepo.getProducts(
       this.productSelectOptions,
