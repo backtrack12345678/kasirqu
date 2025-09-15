@@ -6,6 +6,7 @@ export class CreateOrderDto {
   @MaxLength(100)
   customer: string;
 
+  @IsNotEmpty()
   products: {
     id: number;
     quantity: number;
