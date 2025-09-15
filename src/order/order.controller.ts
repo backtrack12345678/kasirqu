@@ -39,7 +39,6 @@ export class OrderController {
   }
 
   @Auth()
-  @Roles(UserRole.CASHIER, UserRole.OWNER)
   @Get()
   async findAll(@Req() request: any, @Query() query: GetOrdersQueryDto) {
     const auth: IAuth = request.user;
