@@ -51,6 +51,11 @@ export class OrderService {
       );
     }
 
+    const totalHarga = dbProducts.reduce(
+      (acc, p) => acc.add(p.harga.mul(p.jumlah)),
+      new Prisma.Decimal(0),
+    );
+
     const id = `order-${uuid().toString()}`;
 
     const order = await this.orderRepo.createOrder(
@@ -64,7 +69,7 @@ export class OrderService {
         },
         createdName: auth.nama,
         createdRole: auth.role,
-        totalHarga: Prisma.Decimal(1),
+        totalHarga,
         products: {
           createMany: {
             data: dbProducts,
