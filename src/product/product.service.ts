@@ -63,9 +63,7 @@ export class ProductService {
       {
         id: true,
         nama: true,
-        jumlah: true,
         harga: true,
-        modal: true,
       },
       {
         id: {

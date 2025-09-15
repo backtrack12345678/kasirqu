@@ -206,7 +206,6 @@ model OrderProduct {
 
   nama   String  @db.VarChar(100)
   harga  Decimal @db.Decimal(18, 2)
-  modal  Decimal @db.Decimal(18, 2)
   jumlah Int
 
   orderId String @db.VarChar(150)

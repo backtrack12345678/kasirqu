@@ -73,7 +73,14 @@ export class OrderService {
         totalHarga,
         products: {
           createMany: {
-            data: dbProducts,
+            data: payload.products.map((p) => {
+              const product = dbProducts.find((d) => d.id === p.id)!;
+              return {
+                nama: product.nama,
+                harga: product.harga,
+                jumlah: p.quantity,
+              };
+            }),
           },
         },
         book: { connect: { id: cashBook.id } },
