@@ -21,18 +21,18 @@ export class CreateProductDto {
   })
   harga: string;
 
-  // @IsNotEmpty()
-  // @Matches(/^(0|[1-9]\d{0,15})(\.\d{1,2})?$/, {
-  //   message:
-  //     'Modal harus berupa string angka minimal 0 dan maksimal 9999999999999999.99 (DECIMAL(18,2)). Contoh: "0", "1000", atau "9999999999999999.99"',
-  // })
-  // modal: string;
+  @IsNotEmpty()
+  @Matches(/^(0|[1-9]\d{0,15})(\.\d{1,2})?$/, {
+    message:
+      'Modal harus berupa string angka minimal 0 dan maksimal 9999999999999999.99 (DECIMAL(18,2)). Contoh: "0", "1000", atau "9999999999999999.99"',
+  })
+  modal: string;
 
-  // @IsNotEmpty()
-  // @IsNumber()
-  // @IsPositive()
-  // @Transform(({ value }) => parseInt(value, 10))
-  // jumlah: number;
+  @IsNotEmpty()
+  @IsNumber()
+  @IsPositive()
+  @Transform(({ value }) => parseInt(value, 10))
+  jumlah: number;
 
   @IsNotEmpty()
   @IsNumber()
