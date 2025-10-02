@@ -11,6 +11,7 @@ import {
   UseInterceptors,
   ParseFilePipeBuilder,
   UploadedFile,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -72,9 +73,14 @@ export class ProductController {
     };
   }
 
+  @Auth()
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productService.findOne(+id);
+  async findOne(@Req() request: any, @Param('id') id: string) {
+    const result = await this.productService.findOne(request, id);
+    return {
+      status: StatusResponse.SUCCESS,
+      data: result,
+    };
   }
 
   @Patch(':id')
@@ -82,8 +88,15 @@ export class ProductController {
     return this.productService.update(+id, updateProductDto);
   }
 
+  @Auth()
+  @Roles(UserRole.OWNER)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productService.remove(+id);
+  async remove(@Req() request: any, @Param('id') id: string) {
+    const result = await this.productService.remove(request, id);
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Produk Berhasil Dihapus',
+      data: result,
+    };
   }
 }

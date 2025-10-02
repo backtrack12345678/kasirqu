@@ -132,11 +132,11 @@ export class OrderService {
       this.errorService.notFound('Pesanan Tidak Ditemukan');
     }
 
-    if (auth.role === UserRole.WAITER && auth.id !== order.createdId) {
-      this.errorService.forbidden(
-        'Tidak bisa melihat pesanan yang dibuat waiter lain',
-      );
-    }
+    // if (auth.role === UserRole.WAITER && auth.id !== order.createdId) {
+    //   this.errorService.forbidden(
+    //     'Tidak bisa melihat pesanan yang dibuat waiter lain',
+    //   );
+    // }
 
     return this.toOrderResponse(order);
   }

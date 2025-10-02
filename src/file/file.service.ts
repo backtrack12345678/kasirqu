@@ -1,11 +1,72 @@
 import { Injectable } from '@nestjs/common';
 import { Request } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
+import { ErrorService } from '../common/error/error.service';
+import { v4 as uuid } from 'uuid';
+import { Readable } from 'stream';
+import { fromFile } from 'file-type';
 
 @Injectable()
 export class FileService {
+  constructor(private errorService: ErrorService) {}
+
   getHostFile(request: Request): string {
     const protocol: string =
       process.env.NODE_ENV === 'production' ? 'https' : request.protocol;
     return protocol + '://' + request.get('host');
+  }
+
+  async writeFileStream(file: Express.Multer.File, folder: string) {
+    const uploadPath = path.join(process.cwd(), 'uploads', folder);
+
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+
+    const originalName = file.originalname.split('.')[0]; // Nama asli file tanpa ekstensi
+    const uniqueFilename = `${originalName}-${uuid()}`;
+    const filePath = path.join('uploads', folder, uniqueFilename);
+
+    console.log(filePath);
+
+    const bufferStream = Readable.from(file.buffer);
+    const writeStream = fs.createWriteStream(filePath);
+
+    bufferStream.pipe(writeStream);
+
+    await new Promise<void>((resolve, reject) => {
+      writeStream.on('finish', () => resolve());
+      writeStream.on('error', (err) => reject(err));
+    }).catch((err) => {
+      console.error('Gagal menulis file:', err);
+      throw new Error('File upload gagal'); // penting supaya transaksi rollback
+    });
+
+    return { fileName: uniqueFilename, filePath };
+  }
+
+  async readFileStream(filename: string, folder: string) {
+    const filePath = path.join(process.cwd(), `uploads/${folder}/${filename}`);
+
+    if (!fs.existsSync(filePath)) {
+      this.errorService.notFound('File Tidak Ditemukan');
+    }
+
+    const { mime } = await fromFile(filePath);
+    const fileStream = fs.createReadStream(filePath);
+    return { fileStream, mime };
+  }
+
+  deleteFile(path: string): void {
+    if (fs.existsSync(path)) {
+      fs.unlink(path, (err) => {
+        if (err) {
+          console.error(`Failed to delete file: ${path}`, err);
+        }
+      });
+    } else {
+      console.error(`File not found: ${path}`);
+    }
   }
 }

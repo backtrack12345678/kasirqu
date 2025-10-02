@@ -9,20 +9,68 @@ export class ProductRepository {
   async createProduct<T extends Prisma.ProductSelect>(
     data: Prisma.ProductUncheckedCreateInput,
     selectOptions?: T,
-  ): Promise<Prisma.ProductGetPayload<{ select: T }>> {
+  ) {
     return this.prismaService.product.create({
       data,
-      select: selectOptions || undefined,
+      select: selectOptions || this.productSelectOptions,
     });
   }
 
   async getProducts<T extends Prisma.ProductSelect>(
-    selectOptions?: T,
     whereOptions?: Prisma.ProductWhereInput,
-  ): Promise<Prisma.ProductGetPayload<{ select: T }>[]> {
+    selectOptions?: T,
+  ) {
     return this.prismaService.product.findMany({
-      select: selectOptions || undefined,
+      select: selectOptions,
       where: whereOptions,
     });
   }
+
+  async getProductById<T extends Prisma.ProductSelect>(
+    id: string,
+    selectOptions?: T,
+  ) {
+    return this.prismaService.product.findUnique({
+      where: {
+        id,
+      },
+      select: selectOptions || this.productSelectOptions,
+    });
+  }
+
+  async deleteProductById<T extends Prisma.ProductSelect>(
+    id: string,
+    selectOptions?: T,
+  ) {
+    return this.prismaService.product.delete({
+      where: {
+        id,
+      },
+      select: selectOptions || this.productSelectOptions,
+    });
+  }
+
+  productSelectOptions = {
+    id: true,
+    nama: true,
+    jumlah: true,
+    harga: true,
+    modal: true,
+    namaFile: true,
+    path: true,
+    owner: {
+      select: {
+        id: true,
+        nama: true,
+      },
+    },
+    category: {
+      select: {
+        id: true,
+        nama: true,
+      },
+    },
+    createdAt: true,
+    updatedAt: true,
+  };
 }

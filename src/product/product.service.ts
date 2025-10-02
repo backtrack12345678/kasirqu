@@ -7,6 +7,8 @@ import { CategoryService } from '../category/category.service';
 import { Prisma, UserRole } from '@prisma/client';
 import { FileService } from '../file/file.service';
 import { Request } from 'express';
+import { ErrorService } from '../common/error/error.service';
+import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class ProductService {
@@ -14,6 +16,7 @@ export class ProductService {
     private productRepo: ProductRepository,
     private categoryService: CategoryService,
     private fileService: FileService,
+    private errorService: ErrorService,
   ) {}
 
   async create(
@@ -22,7 +25,7 @@ export class ProductService {
     media: Express.Multer.File,
   ) {
     const auth: IAuth = request.user;
-    const ownerId = auth.id;
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
     const { harga, ...productPayload } = payload;
 
     await this.categoryService.checkCategoryOwner(
@@ -30,16 +33,21 @@ export class ProductService {
       productPayload.categoryId,
     );
 
-    const product = await this.productRepo.createProduct(
-      {
-        ownerId,
-        ...productPayload,
-        harga: Prisma.Decimal(harga),
-        namaFile: 'test',
-        path: 'tes',
-      },
-      this.productSelectOptions,
+    const uploadedMedia = await this.fileService.writeFileStream(
+      media,
+      'product',
     );
+
+    const id = `product-${uuid().toString()}`;
+
+    const product = await this.productRepo.createProduct({
+      id,
+      ownerId,
+      ...productPayload,
+      harga: Prisma.Decimal(harga),
+      namaFile: uploadedMedia.fileName,
+      path: uploadedMedia.filePath,
+    });
 
     return this.toProductResponse(product, request);
   }
@@ -48,76 +56,66 @@ export class ProductService {
     const auth: IAuth = request.user;
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
-    const products = await this.productRepo.getProducts(
-      this.productSelectOptions,
-      {
-        ownerId,
-      },
-    );
+    const products = await this.productRepo.getProducts({
+      ownerId,
+    });
 
     return products.map((product) => this.toProductResponse(product, request));
   }
 
-  async findAllByIds(ids: number[], ownerId: string) {
+  async findAllByIds(ids: string[], ownerId: string) {
     const products = await this.productRepo.getProducts(
-      {
-        id: true,
-        nama: true,
-        harga: true,
-      },
       {
         id: {
           in: ids,
         },
         ownerId,
       },
+      {
+        id: true,
+        nama: true,
+        harga: true,
+      },
     );
 
     return products;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(request: any, id: string) {
+    const auth: IAuth = request.user;
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+
+    const product = await this.productRepo.getProductById(id);
+
+    if (!product || product.owner.id !== ownerId) {
+      this.errorService.notFound('Produk Tidak Ditemukan');
+    }
+
+    return this.toProductResponse(product, request);
   }
 
   update(id: number, updateProductDto: UpdateProductDto) {
     return `This action updates a #${id} product`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
-  }
+  async remove(request: any, id: string) {
+    await this.findOne(request, id);
 
-  productSelectOptions = {
-    id: true,
-    nama: true,
-    jumlah: true,
-    harga: true,
-    modal: true,
-    namaFile: true,
-    owner: {
-      select: {
-        id: true,
-        nama: true,
-      },
-    },
-    category: {
-      select: {
-        id: true,
-        nama: true,
-      },
-    },
-    createdAt: true,
-    updatedAt: true,
-  };
+    const product = await this.productRepo.deleteProductById(id, {
+      path: true,
+    });
+
+    // delete file
+    this.fileService.deleteFile(product.path);
+  }
 
   private toProductResponse(product, request: Request) {
     const { harga, namaFile, modal, ...productData } = product;
     return {
       ...productData,
       harga: harga.toString(),
-      modal: modal.toString(),
-      urlFile: `${this.fileService.getHostFile(request)}/file/transaction/${namaFile}`,
+      modal: modal?.toString() || null,
+      urlFile: `${this.fileService.getHostFile(request)}/file/product/${namaFile}`,
     };
   }
 }

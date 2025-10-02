@@ -12,6 +12,8 @@ import { CategoryModule } from './category/category.module';
 import { FileModule } from './file/file.module';
 import { CashBookModule } from './cash-book/cash-book.module';
 import { OrderModule } from './order/order.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { CostModule } from './cost/cost.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { OrderModule } from './order/order.module';
     FileModule,
     CashBookModule,
     OrderModule,
+    SubscriptionModule,
+    CostModule,
   ],
   controllers: [AppController],
   providers: [AppService],
