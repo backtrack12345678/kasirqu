@@ -34,10 +34,10 @@ export class ProductService {
       productPayload.categoryId,
     );
 
-    const uploadedMedia = await this.fileService.writeFileStream(
-      media,
-      'product',
-    );
+    // const uploadedMedia = await this.fileService.writeFileStream(
+    //   media,
+    //   'product',
+    // );
 
     const id = `product-${uuid().toString()}`;
 
@@ -47,8 +47,10 @@ export class ProductService {
       ...productPayload,
       harga: new Prisma.Decimal(harga),
       modal: new Prisma.Decimal(modal),
-      namaFile: uploadedMedia.fileName,
-      path: uploadedMedia.filePath,
+      // namaFile: uploadedMedia.fileName,
+      // path: uploadedMedia.filePath,
+      namaFile: 'tes',
+      path: 'tes',
     });
 
     return this.toProductResponse(product, request);
@@ -116,21 +118,23 @@ export class ProductService {
         payload.categoryId,
       );
 
-    const uploadedMedia = media
-      ? await this.fileService.writeFileStream(media, 'product')
-      : null;
+    // const uploadedMedia = media
+    //   ? await this.fileService.writeFileStream(media, 'product')
+    //   : null;
 
     const updatedProduct = await this.productRepo.updateProductById(id, {
       ...productPayload,
       harga: harga ? new Prisma.Decimal(harga) : undefined,
       modal: modal ? new Prisma.Decimal(modal) : undefined,
-      namaFile: uploadedMedia?.fileName,
-      path: uploadedMedia?.filePath,
+      // namaFile: uploadedMedia?.fileName,
+      // path: uploadedMedia?.filePath,
+      namaFile: 'tes',
+      path: 'tes',
     });
 
-    if (uploadedMedia) {
-      await this.fileService.deleteFile(product.path);
-    }
+    // if (uploadedMedia) {
+    //   await this.fileService.deleteFile(product.path);
+    // }
 
     return this.toProductResponse(updatedProduct, request);
   }
@@ -143,7 +147,7 @@ export class ProductService {
     });
 
     // delete file
-    this.fileService.deleteFile(product.path);
+    // this.fileService.deleteFile(product.path);
   }
 
   private toProductResponse(product, request: Request) {
