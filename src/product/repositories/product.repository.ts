@@ -38,6 +38,20 @@ export class ProductRepository {
     });
   }
 
+  async updateProductById<T extends Prisma.ProductSelect>(
+    id: string,
+    data: Prisma.ProductUpdateInput,
+    selectOptions?: T,
+  ) {
+    return this.prismaService.product.update({
+      where: {
+        id,
+      },
+      data,
+      select: selectOptions || this.productSelectOptions,
+    });
+  }
+
   async deleteProductById<T extends Prisma.ProductSelect>(
     id: string,
     selectOptions?: T,

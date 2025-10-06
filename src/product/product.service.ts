@@ -9,6 +9,7 @@ import { FileService } from '../file/file.service';
 import { Request } from 'express';
 import { ErrorService } from '../common/error/error.service';
 import { v4 as uuid } from 'uuid';
+import * as path from 'path';
 
 @Injectable()
 export class ProductService {
@@ -26,7 +27,7 @@ export class ProductService {
   ) {
     const auth: IAuth = request.user;
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
-    const { harga, ...productPayload } = payload;
+    const { harga, modal, ...productPayload } = payload;
 
     await this.categoryService.checkCategoryOwner(
       ownerId,
@@ -44,7 +45,8 @@ export class ProductService {
       id,
       ownerId,
       ...productPayload,
-      harga: Prisma.Decimal(harga),
+      harga: new Prisma.Decimal(harga),
+      modal: new Prisma.Decimal(modal),
       namaFile: uploadedMedia.fileName,
       path: uploadedMedia.filePath,
     });
@@ -94,8 +96,43 @@ export class ProductService {
     return this.toProductResponse(product, request);
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async update(
+    request: any,
+    id: string,
+    payload: UpdateProductDto,
+    media?: Express.Multer.File,
+  ) {
+    const auth: IAuth = request.user;
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+    const { harga, modal, ...productPayload } = payload;
+
+    const product = await this.findOne(request, id);
+
+    console.log(payload.categoryId);
+
+    if (payload.categoryId)
+      await this.categoryService.checkCategoryOwner(
+        ownerId,
+        payload.categoryId,
+      );
+
+    const uploadedMedia = media
+      ? await this.fileService.writeFileStream(media, 'product')
+      : null;
+
+    const updatedProduct = await this.productRepo.updateProductById(id, {
+      ...productPayload,
+      harga: harga ? new Prisma.Decimal(harga) : undefined,
+      modal: modal ? new Prisma.Decimal(modal) : undefined,
+      namaFile: uploadedMedia?.fileName,
+      path: uploadedMedia?.filePath,
+    });
+
+    if (uploadedMedia) {
+      await this.fileService.deleteFile(product.path);
+    }
+
+    return this.toProductResponse(updatedProduct, request);
   }
 
   async remove(request: any, id: string) {
@@ -110,7 +147,8 @@ export class ProductService {
   }
 
   private toProductResponse(product, request: Request) {
-    const { harga, namaFile, modal, ...productData } = product;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { harga, namaFile, modal, path, ...productData } = product;
     return {
       ...productData,
       harga: harga.toString(),

@@ -83,9 +83,44 @@ export class ProductController {
     };
   }
 
+  @Auth()
+  @Roles(UserRole.OWNER)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productService.update(+id, updateProductDto);
+  @UseInterceptors(
+    FileInterceptor('media', {
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  async update(
+    @Req() request: any,
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addValidator(
+          new FilesValidator({
+            mimeTypes: allowedMimeTypes,
+          }),
+        )
+        .build({
+          fileIsRequired: false,
+        }),
+    )
+    media: Express.Multer.File,
+  ) {
+    const result = await this.productService.update(
+      request,
+      id,
+      updateProductDto,
+      media,
+    );
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Produk Berhasil Diperbarui',
+      data: result,
+    };
   }
 
   @Auth()

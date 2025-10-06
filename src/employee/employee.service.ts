@@ -7,12 +7,15 @@ import { IAuth } from '../auth/interfaces/auth.interface';
 import { v4 as uuid } from 'uuid';
 import { IEmployeeResponse } from './interfaces/employee.interface';
 import * as bcrypt from 'bcrypt';
+import { EmployeeRepository } from './repositories/employee.repository';
+import { UpdateEmployeeDto } from './dto/update-employee.dto';
 
 @Injectable()
 export class EmployeeService {
   constructor(
     private prismaService: PrismaService,
     private errorService: ErrorService,
+    private employeeRepo: EmployeeRepository,
   ) {}
 
   async create(
@@ -61,8 +64,8 @@ export class EmployeeService {
     return employee;
   }
 
-  async findOne(auth: IAuth, employeeId: string): Promise<IEmployeeResponse> {
-    const employee = await this.checkEmployeeOwner(employeeId, auth.id);
+  async findOne(auth: IAuth, id: string): Promise<IEmployeeResponse> {
+    const employee = await this.checkEmployeeOwner(id, auth.id);
     return employee;
   }
 
@@ -91,12 +94,35 @@ export class EmployeeService {
     return employee;
   }
 
-  // update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
-  //   return `This action updates a #${id} employee`;
-  // }
+  async update(
+    auth: IAuth,
+    id: string,
+    payload: UpdateEmployeeDto,
+  ): Promise<IEmployeeResponse> {
+    const employee = await this.checkEmployeeOwner(id, auth.id);
 
-  remove(id: number) {
-    return `This action removes a #${id} employee`;
+    const { password, ...employeeData } = payload;
+
+    if (employeeData.email && employeeData.email !== employee.email) {
+      await this.checkIsEmployeeExist(employeeData.email);
+    }
+
+    const hashedPassword = password
+      ? await bcrypt.hash(password, 10)
+      : undefined;
+
+    const updatedEmployee = await this.employeeRepo.updateEmployeeById(id, {
+      ...employeeData,
+      password: hashedPassword,
+    });
+
+    return updatedEmployee;
+  }
+
+  async remove(auth: IAuth, id: string): Promise<void> {
+    await this.checkEmployeeOwner(id, auth.id);
+
+    await this.employeeRepo.deleteEmployeeById(id, { id: true });
   }
 
   private async checkEmployeeLimit(ownerId: string): Promise<void> {
@@ -105,7 +131,6 @@ export class EmployeeService {
     const countEmployee = await this.prismaService.employee.count({
       where: {
         ownerId,
-        isActive: true,
       },
     });
 
@@ -148,7 +173,6 @@ export class EmployeeService {
     email: true,
     nama: true,
     role: true,
-    isActive: true,
     ownerId: true,
   };
 }

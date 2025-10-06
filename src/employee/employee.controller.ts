@@ -66,31 +66,49 @@ export class EmployeeController {
 
   @Auth()
   @Roles(UserRole.OWNER)
-  @Get(':employeeId')
+  @Get(':id')
   async findOne(
     @Req() request: any,
-    @Param('employeeId') employeeId: string,
+    @Param('id') id: string,
   ): Promise<IWebResponse<IEmployeeResponse>> {
     const auth: IAuth = request.user;
-    const result = await this.employeeService.findOne(auth, employeeId);
+    const result = await this.employeeService.findOne(auth, id);
     return {
       status: StatusResponse.SUCCESS,
       data: result,
     };
   }
 
-  // @Auth()
-  // @Roles(UserRole.OWNER)
-  // @Patch(':employeeId')
-  // update(
-  //   @Param('employeeId') employeeId: string,
-  //   @Body() payload: UpdateEmployeeDto,
-  // ) {
-  //   return this.employeeService.update(employeeId, payload);
-  // }
+  @Auth()
+  @Roles(UserRole.OWNER)
+  @Patch(':id')
+  async update(
+    @Req() request: any,
+    @Param('id') id: string,
+    @Body() payload: UpdateEmployeeDto,
+  ): Promise<IWebResponse<IEmployeeResponse>> {
+    const auth: IAuth = request.user;
+    const result = await this.employeeService.update(auth, id, payload);
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Karyawan Berhasil Diperbarui',
+      data: result,
+    };
+  }
 
+  @Auth()
+  @Roles(UserRole.OWNER)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.employeeService.remove(+id);
+  async remove(
+    @Req() request: any,
+    @Param('id') id: string,
+  ): Promise<IWebResponse<boolean>> {
+    const auth: IAuth = request.user;
+    await this.employeeService.remove(auth, id);
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Karyawan Berhasil Dihapus',
+      data: true,
+    };
   }
 }

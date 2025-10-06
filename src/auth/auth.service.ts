@@ -65,7 +65,7 @@ export class AuthService {
       this.errorService.unauthorized('Kredensial Tidak Valid');
     }
 
-    const { password, isActive, ...employeeData } = employee;
+    const { password, ...employeeData } = employee;
 
     const isPasswordValid = await bcrypt.compare(payload.password, password);
 
@@ -73,9 +73,9 @@ export class AuthService {
       this.errorService.unauthorized('Kredensial Tidak Valid');
     }
 
-    if (!isActive) {
-      this.errorService.badRequest('Karyawan Sedang Ditangguhkan');
-    }
+    // if (!isActive) {
+    //   this.errorService.badRequest('Karyawan Sedang Ditangguhkan');
+    // }
 
     const accessToken = await this.generateAuthToken(
       employeeData,
