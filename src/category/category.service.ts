@@ -16,13 +16,10 @@ export class CategoryService {
   async create(auth: IAuth, payload: CreateCategoryDto) {
     const ownerId: string = auth.id;
 
-    const category = await this.categoryRepo.createCategory(
-      {
-        ownerId,
-        ...payload,
-      },
-      this.categorySelectOptions,
-    );
+    const category = await this.categoryRepo.createCategory({
+      ownerId,
+      ...payload,
+    });
 
     return category;
   }
@@ -31,52 +28,50 @@ export class CategoryService {
     const ownerId: string =
       auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
-    const categories = await this.categoryRepo.getCategories(
-      this.categorySelectOptions,
-      {
-        ownerId,
-      },
-    );
+    const categories = await this.categoryRepo.getCategoriesByOwnerId(ownerId);
 
     return categories;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} category`;
+  async findOne(auth: IAuth, id: number) {
+    const ownerId: string =
+      auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+
+    const category = await this.checkCategoryOwner(ownerId, id);
+
+    return category;
   }
 
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    return `This action updates a #${id} category`;
+  async update(auth: IAuth, id: number, payload: UpdateCategoryDto) {
+    const category = await this.findOne(auth, id);
+
+    const updatedCategory = await this.categoryRepo.updateCategoryById(
+      category.id,
+      payload,
+    );
+
+    return updatedCategory;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} category`;
-  }
+  async remove(auth: IAuth, id: number) {
+    const category = await this.findOne(auth, id);
 
-  async checkCategoryOwner(ownerId: string, categoryId: number) {
-    const category = await this.categoryRepo.getCategoryById(categoryId, {
-      ownerId: true,
+    await this.categoryRepo.deleteCategoryById(category.id, {
+      id: true,
     });
+  }
+
+  async checkCategoryOwner(ownerId: string, id: number) {
+    const category = await this.categoryRepo.getCategoryById(id);
 
     if (!category) {
       this.errorService.notFound('Kategori Tidak Ditemukan');
     }
 
-    if (ownerId !== category.ownerId) {
+    if (ownerId !== category.owner.id) {
       this, this.errorService.forbidden('Kategori Bukan Milik Pengguna Ini');
     }
-  }
 
-  categorySelectOptions = {
-    id: true,
-    nama: true,
-    owner: {
-      select: {
-        id: true,
-        nama: true,
-      },
-    },
-    createdAt: true,
-    updatedAt: true,
-  };
+    return category;
+  }
 }

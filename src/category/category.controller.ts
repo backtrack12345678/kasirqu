@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Req,
+  ParseIntPipe,
+  HttpCode,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -23,6 +25,7 @@ export class CategoryController {
 
   @Auth()
   @Roles(UserRole.OWNER)
+  @HttpCode(201)
   @Post()
   async create(@Req() request: any, @Body() payload: CreateCategoryDto) {
     const auth: IAuth = request.user;
@@ -45,21 +48,48 @@ export class CategoryController {
     };
   }
 
+  @Auth()
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.categoryService.findOne(+id);
+  async findOne(@Req() request: any, @Param('id', ParseIntPipe) id: number) {
+    const auth: IAuth = request.user;
+    const result = await this.categoryService.findOne(auth, id);
+    return {
+      status: StatusResponse.SUCCESS,
+      data: result,
+    };
   }
 
+  @Auth()
+  @Roles(UserRole.OWNER)
   @Patch(':id')
-  update(
-    @Param('id') id: string,
+  async update(
+    @Req() request: any,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
-    return this.categoryService.update(+id, updateCategoryDto);
+    const auth: IAuth = request.user;
+    const result = await this.categoryService.update(
+      auth,
+      id,
+      updateCategoryDto,
+    );
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Kategori Berhasil Diperbarui',
+      data: result,
+    };
   }
 
+  @Auth()
+  @Roles(UserRole.OWNER)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoryService.remove(+id);
+  async remove(@Req() request: any, @Param('id', ParseIntPipe) id: number) {
+    const auth: IAuth = request.user;
+    await this.categoryService.remove(auth, id);
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Kategori Berhasil Dihapus',
+      data: true,
+    };
   }
 }
