@@ -22,7 +22,7 @@ export class EmployeeService {
     auth: IAuth,
     payload: CreateEmployeeDto,
   ): Promise<IEmployeeResponse> {
-    await this.checkEmployeeLimit(auth.id);
+    // await this.checkEmployeeLimit(auth.id);
     await this.checkIsEmployeeExist(payload.email);
 
     const { password, ...employeeData } = payload;
