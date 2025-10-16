@@ -11,6 +11,7 @@ import { ProductService } from '../product/product.service';
 import { UserService } from '../user/user.service';
 import Decimal from 'decimal.js';
 import { GetOrdersQueryDto, GetTotalOrdersQueryDto } from './dto/get-order.dto';
+import { FileService } from '../file/file.service';
 
 @Injectable()
 export class OrderService {
@@ -20,9 +21,11 @@ export class OrderService {
     private errorService: ErrorService,
     private productService: ProductService,
     private userService: UserService,
+    private fileService: FileService,
   ) {}
 
-  async create(auth: IAuth, payload: CreateOrderDto) {
+  async create(request, payload: CreateOrderDto) {
+    const auth: IAuth = request.user;
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
     const { products, ...orderPayload } = payload;
 
@@ -79,6 +82,8 @@ export class OrderService {
                 nama: product.nama,
                 harga: product.harga,
                 jumlah: p.quantity,
+                namaFile: product.namaFile,
+                path: product.path,
               };
             }),
           },
@@ -88,10 +93,11 @@ export class OrderService {
       this.toOrderSelectOptions,
     );
 
-    return this.toOrderResponse(order);
+    return this.toOrderResponse(order, request);
   }
 
-  async findAll(auth: IAuth, query: GetOrdersQueryDto) {
+  async findAll(request, query: GetOrdersQueryDto) {
+    const auth: IAuth = request.user;
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
     const orders = await this.orderRepo.getOrders(
@@ -113,10 +119,11 @@ export class OrderService {
       },
     );
 
-    return orders.map((order) => this.toOrderResponse(order));
+    return orders.map((order) => this.toOrderResponse(order, request));
   }
 
-  async findOne(auth: IAuth, id: string) {
+  async findOne(request, id: string) {
+    const auth: IAuth = request.user;
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
     const order = await this.orderRepo.getOrderById(id, {
@@ -138,15 +145,15 @@ export class OrderService {
     //   );
     // }
 
-    return this.toOrderResponse(order);
+    return this.toOrderResponse(order, request);
   }
 
   update(id: number, updateOrderDto: UpdateOrderDto) {
     return `This action updates a #${id} order`;
   }
 
-  async remove(auth: IAuth, id: string) {
-    const order = await this.findOne(auth, id);
+  async remove(request, id: string) {
+    const order = await this.findOne(request, id);
 
     if ([OrderStatus.DITERIMA, OrderStatus.DIBAYAR].includes(order.status)) {
       this.errorService.badRequest(
@@ -159,8 +166,9 @@ export class OrderService {
     });
   }
 
-  async payment(auth: IAuth, id: string, payload: PaymentOrderDto) {
-    const order = await this.findOne(auth, id);
+  async payment(request, id: string, payload: PaymentOrderDto) {
+    const auth: IAuth = request.user;
+    const order = await this.findOne(request, id);
 
     if ([OrderStatus.DIBAYAR].includes(order.status)) {
       this.errorService.badRequest(`Pesanan Sudah ${order.status}`);
@@ -193,7 +201,7 @@ export class OrderService {
     );
 
     return {
-      ...this.toOrderResponse(orderPayment),
+      ...this.toOrderResponse(orderPayment, request),
       totalBayar: totalPaid.toString(),
       kembalian: change,
     };
@@ -257,13 +265,29 @@ export class OrderService {
     payments: {
       select: this.toOrderPaymentSelectOptions,
     },
+    products: {
+      select: {
+        nama: true,
+        harga: true,
+        jumlah: true,
+        namaFile: true,
+      },
+    },
   };
 
-  toOrderResponse(order) {
-    const { payments, totalHarga, ...orderData } = order;
+  toOrderResponse(order, request) {
+    const { payments, totalHarga, products, ...orderData } = order;
     return {
       ...orderData,
       totalHarga: totalHarga.toString(),
+      products: products.map((product) => {
+        const { harga, namaFile, ...productData } = product;
+        return {
+          ...productData,
+          harga: harga.toString(),
+          urlFile: `${this.fileService.getHostFile(request)}/file/product/${namaFile}`,
+        };
+      }),
       payments: payments.map((payment) => this.toOrderPaymentResponse(payment)),
     };
   }

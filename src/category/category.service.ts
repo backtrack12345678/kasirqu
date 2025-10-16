@@ -56,9 +56,13 @@ export class CategoryService {
   async remove(auth: IAuth, id: number) {
     const category = await this.findOne(auth, id);
 
-    await this.categoryRepo.deleteCategoryById(category.id, {
-      id: true,
-    });
+    await this.categoryRepo.updateCategoryById(
+      category.id,
+      {
+        isActive: false,
+      },
+      { id: true },
+    );
   }
 
   async checkCategoryOwner(ownerId: string, id: number) {

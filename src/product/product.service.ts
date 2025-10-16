@@ -62,6 +62,9 @@ export class ProductService {
 
     const products = await this.productRepo.getProducts({
       ownerId,
+      category: {
+        isActive: true,
+      },
     });
 
     return products.map((product) => this.toProductResponse(product, request));
@@ -74,11 +77,16 @@ export class ProductService {
           in: ids,
         },
         ownerId,
+        category: {
+          isActive: true,
+        },
       },
       {
         id: true,
         nama: true,
         harga: true,
+        namaFile: true,
+        path: true,
       },
     );
 
@@ -91,7 +99,11 @@ export class ProductService {
 
     const product = await this.productRepo.getProductById(id);
 
-    if (!product || product.owner.id !== ownerId) {
+    if (
+      !product ||
+      product.owner.id !== ownerId ||
+      !product.category?.isActive
+    ) {
       this.errorService.notFound('Produk Tidak Ditemukan');
     }
 
@@ -109,8 +121,6 @@ export class ProductService {
     const { harga, modal, ...productPayload } = payload;
 
     const product = await this.findOne(request, id);
-
-    console.log(payload.categoryId);
 
     if (payload.categoryId)
       await this.categoryService.checkCategoryOwner(

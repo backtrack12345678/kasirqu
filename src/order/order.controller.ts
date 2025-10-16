@@ -30,8 +30,7 @@ export class OrderController {
   @HttpCode(201)
   @Post()
   async create(@Req() request: any, @Body() payload: CreateOrderDto) {
-    const auth: IAuth = request.user;
-    const result = await this.orderService.create(auth, payload);
+    const result = await this.orderService.create(request, payload);
     return {
       status: StatusResponse.SUCCESS,
       message: 'Pesanan Berhasil Dibuat',
@@ -42,8 +41,7 @@ export class OrderController {
   @Auth()
   @Get()
   async findAll(@Req() request: any, @Query() query: GetOrdersQueryDto) {
-    const auth: IAuth = request.user;
-    const result = await this.orderService.findAll(auth, query);
+    const result = await this.orderService.findAll(request, query);
     return {
       status: StatusResponse.SUCCESS,
       data: result,
@@ -67,8 +65,7 @@ export class OrderController {
   @Auth()
   @Get(':id')
   async findOne(@Req() request: any, @Param('id') id: string) {
-    const auth: IAuth = request.user;
-    const result = await this.orderService.findOne(auth, id);
+    const result = await this.orderService.findOne(request, id);
     return {
       status: StatusResponse.SUCCESS,
       data: result,
@@ -88,8 +85,7 @@ export class OrderController {
     @Param('id') id: string,
     @Body() payload: PaymentOrderDto,
   ) {
-    const auth: IAuth = request.user;
-    const result = await this.orderService.payment(auth, id, payload);
+    const result = await this.orderService.payment(request, id, payload);
     return {
       status: StatusResponse.SUCCESS,
       message: 'Pesanan Berhasil Dibayar',
@@ -101,8 +97,7 @@ export class OrderController {
   @Roles(UserRole.CASHIER, UserRole.WAITER)
   @Delete(':id')
   async remove(@Req() request: any, @Param('id') id: string) {
-    const auth: IAuth = request.user;
-    await this.orderService.remove(auth, id);
+    await this.orderService.remove(request, id);
     return {
       status: StatusResponse.SUCCESS,
       message: 'Pesanan Berhasil Dihapus',
