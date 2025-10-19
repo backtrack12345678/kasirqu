@@ -99,6 +99,8 @@ export class ProductService {
 
     const product = await this.productRepo.getProductById(id);
 
+    console.log(product.category.isActive);
+
     if (
       !product ||
       product.owner.id !== ownerId ||
