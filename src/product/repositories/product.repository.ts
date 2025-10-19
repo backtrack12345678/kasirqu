@@ -84,6 +84,7 @@ export class ProductRepository {
         nama: true,
       },
     },
+    isActive: true,
     createdAt: true,
     updatedAt: true,
   };
