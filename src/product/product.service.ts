@@ -99,7 +99,7 @@ export class ProductService {
 
     const product = await this.productRepo.getProductById(id);
 
-    console.log(product.category.isActive);
+    console.log(product.category);
 
     if (
       !product ||

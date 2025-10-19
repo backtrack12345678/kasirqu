@@ -82,6 +82,7 @@ export class ProductRepository {
       select: {
         id: true,
         nama: true,
+        isActive: true,
       },
     },
     createdAt: true,

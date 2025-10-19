@@ -112,8 +112,6 @@ export class AuthService {
     }
 
     if (role === UserRole.OWNER) {
-      console.log('tes');
-
       const token = await this.prismaService.refresh_Token.findFirst({
         where: {
           refreshToken,
