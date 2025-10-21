@@ -221,7 +221,7 @@ export class OrderService {
       createdAt: { gte: start, lte: end },
     });
 
-    return total._sum.totalHarga.toString() || '';
+    return total._sum?.totalHarga?.toString() || '';
   }
 
   private getRange(type: 'day' | 'month', now: Date) {
