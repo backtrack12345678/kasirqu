@@ -11,7 +11,7 @@ import {
   UseInterceptors,
   ParseFilePipeBuilder,
   UploadedFile,
-  ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -22,6 +22,7 @@ import { UserRole } from '@prisma/client';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesValidator } from '../file/pipes/files.validator';
 import { StatusResponse } from '../common/enums/web.enum';
+import { GetAllQueryDto } from './dto/get-product.dto';
 
 const allowedMimeTypes = {
   media: ['image/png', 'image/jpg', 'image/jpeg'],
@@ -65,8 +66,8 @@ export class ProductController {
 
   @Auth()
   @Get()
-  async findAll(@Req() request: any) {
-    const result = await this.productService.findAll(request);
+  async findAll(@Req() request: any, @Query() query: GetAllQueryDto) {
+    const result = await this.productService.findAll(request, query);
     return {
       status: StatusResponse.SUCCESS,
       data: result,

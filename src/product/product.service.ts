@@ -10,6 +10,7 @@ import { Request } from 'express';
 import { ErrorService } from '../common/error/error.service';
 import { v4 as uuid } from 'uuid';
 import * as path from 'path';
+import { GetAllQueryDto } from './dto/get-product.dto';
 
 @Injectable()
 export class ProductService {
@@ -56,7 +57,7 @@ export class ProductService {
     return this.toProductResponse(product, request);
   }
 
-  async findAll(request: any) {
+  async findAll(request: any, query?: GetAllQueryDto) {
     const auth: IAuth = request.user;
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
@@ -64,6 +65,10 @@ export class ProductService {
       ownerId,
       category: {
         isActive: true,
+        id: query.categoryId || undefined,
+      },
+      nama: {
+        contains: query.nama,
       },
     });
 
