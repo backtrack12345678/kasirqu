@@ -21,7 +21,7 @@ export class ProductRepository {
     selectOptions?: T,
   ) {
     return this.prismaService.product.findMany({
-      select: selectOptions,
+      select: selectOptions || this.productSelectOptions,
       where: whereOptions,
     });
   }
