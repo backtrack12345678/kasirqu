@@ -7,12 +7,15 @@ import { ErrorService } from '../common/error/error.service';
 import { IAuth } from '../auth/interfaces/auth.interface';
 import { v4 as uuid } from 'uuid';
 import { GetCashBooksQueryDto } from './dto/get-cash-book.dto';
+import { PrismaService } from '../common/prisma/prisma.service';
+import Decimal from 'decimal.js';
 
 @Injectable()
 export class CashBookService {
   constructor(
     private cashBookRepo: CashBookRepository,
     private errorService: ErrorService,
+    private prismaService: PrismaService,
   ) {}
 
   async create(auth: IAuth, payload: CreateCashBookDto) {
@@ -49,11 +52,14 @@ export class CashBookService {
   async findAll(auth: IAuth, query: GetCashBooksQueryDto) {
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
+    const { startDate, endDate } = this.getDateRange(query.month);
+
     const cashBooks = await this.cashBookRepo.getCashBooks(
       this.cashBookSelectOptions,
       {
         ownerId,
         // createdId: auth.role !== UserRole.OWNER ? auth.id : undefined,
+        createdAt: { gte: startDate, lte: endDate },
       },
       {
         take: query.size,
@@ -66,7 +72,49 @@ export class CashBookService {
       },
     );
 
-    return cashBooks.map((cashBook) => this.toCashBookResponse(cashBook));
+    const [orders, costs] = await Promise.all([
+      this.prismaService.order.groupBy({
+        by: ['cashBookId'],
+        _sum: { totalHarga: true },
+        where: {
+          book: {
+            ownerId,
+          },
+          createdAt: { gte: startDate, lte: endDate },
+        },
+      }),
+      this.prismaService.cost.groupBy({
+        by: ['cashBookId'],
+        _sum: { totalHarga: true },
+        where: {
+          book: {
+            ownerId,
+          },
+          createdAt: { gte: startDate, lte: endDate },
+        },
+      }),
+    ]);
+
+    return cashBooks.map((cashBook) => {
+      const order = orders.find((o) => o.cashBookId === cashBook.id);
+      const cost = costs.find((c) => c.cashBookId === cashBook.id);
+
+      const totalOrder = new Decimal(order?._sum.totalHarga || 0);
+      const totalCost = new Decimal(cost?._sum.totalHarga || 0);
+
+      const profitValue = totalOrder.minus(totalCost);
+      const profitStatus = profitValue.gte(0) ? 'UNTUNG' : 'RUGI';
+
+      return {
+        ...this.toCashBookResponse(cashBook),
+        totalOrder: totalOrder.toString(),
+        totalCost: totalCost.toString(),
+        profit: {
+          value: profitValue.toString(),
+          status: profitStatus,
+        },
+      };
+    });
   }
 
   async findOne(auth: IAuth, id: string) {
@@ -158,5 +206,12 @@ export class CashBookService {
         role: closedRole,
       },
     };
+  }
+
+  private getDateRange(month: string) {
+    const [year, monthNum] = month.split('-').map(Number);
+    const startDate = new Date(year, monthNum - 1, 1, 0, 0, 0);
+    const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+    return { startDate, endDate };
   }
 }
