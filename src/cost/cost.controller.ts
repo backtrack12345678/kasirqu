@@ -8,6 +8,7 @@ import {
   Delete,
   HttpCode,
   Req,
+  Query,
 } from '@nestjs/common';
 import { CostService } from './cost.service';
 import { CreateCostDto } from './dto/create-cost.dto';
@@ -17,6 +18,7 @@ import { Roles } from '../auth/decorator/role.decorator';
 import { UserRole } from '@prisma/client';
 import { IAuth } from '../auth/interfaces/auth.interface';
 import { StatusResponse } from '../common/enums/web.enum';
+import { GetCostQueryDto } from './dto/get- cost.dto';
 
 @Controller('cost')
 export class CostController {
@@ -36,9 +38,17 @@ export class CostController {
     };
   }
 
+  @Auth()
+  @Roles(UserRole.OWNER)
   @Get()
-  findAll() {
-    return this.costService.findAll();
+  async findAll(@Req() request: any, @Query() query: GetCostQueryDto) {
+    const auth: IAuth = request.user;
+    const result = await this.costService.findAll(auth, query);
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Biaya Berhasil Dibuat',
+      data: result,
+    };
   }
 
   @Auth()

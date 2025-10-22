@@ -72,9 +72,20 @@ export class OrderController {
     };
   }
 
+  @Auth()
+  @Roles(UserRole.CASHIER, UserRole.WAITER)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.orderService.update(+id, updateOrderDto);
+  async update(
+    @Req() request: any,
+    @Param('id') id: string,
+    @Body() updateOrderDto: UpdateOrderDto,
+  ) {
+    const result = await this.orderService.update(request, id, updateOrderDto);
+    return {
+      status: StatusResponse.SUCCESS,
+      message: 'Pesanan Berhasil Ditambah',
+      data: result,
+    };
   }
 
   @Auth()

@@ -148,8 +148,62 @@ export class OrderService {
     return this.toOrderResponse(order, request);
   }
 
-  update(id: number, updateOrderDto: UpdateOrderDto) {
-    return `This action updates a #${id} order`;
+  async update(request: any, id: string, payload: UpdateOrderDto) {
+    const auth: IAuth = request.user;
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+    const order = await this.findOne(request, id);
+
+    if ([OrderStatus.DIBAYAR].includes(order.status)) {
+      this.errorService.badRequest(`Pesanan Sudah ${order.status}`);
+    }
+
+    const { products } = payload;
+
+    const ids = products.map((p) => p.id);
+
+    if (new Set(ids).size !== ids.length) {
+      this.errorService.badRequest('id product ada yang duplikat');
+    }
+
+    const dbProducts = await this.productService.findAllByIds(ids, ownerId);
+
+    if (dbProducts.length !== ids.length) {
+      this.errorService.badRequest(
+        'Beberapa Produk tidak ditemukan atau milik pengguna lain',
+      );
+    }
+
+    const totalHarga = new Prisma.Decimal(order.totalHarga).add(
+      payload.products.reduce((acc, p) => {
+        const product = dbProducts.find((d) => d.id === p.id);
+        if (!product) return acc;
+        return acc.add(product.harga.mul(p.quantity));
+      }, new Prisma.Decimal(0)),
+    );
+
+    const updatedOrder = await this.orderRepo.updateOrderById(
+      id,
+      {
+        totalHarga,
+        products: {
+          createMany: {
+            data: payload.products.map((p) => {
+              const product = dbProducts.find((d) => d.id === p.id)!;
+              return {
+                nama: product.nama,
+                harga: product.harga,
+                jumlah: p.quantity,
+                namaFile: product.namaFile,
+                path: product.path,
+              };
+            }),
+          },
+        },
+      },
+      this.toOrderSelectOptions,
+    );
+
+    return this.toOrderResponse(updatedOrder, request);
   }
 
   async remove(request, id: string) {

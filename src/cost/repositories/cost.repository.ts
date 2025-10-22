@@ -13,11 +13,28 @@ export class CostRepository {
     return this.prismaService.cost.create({
       data,
       select: selectOptions || {
-        ...this.toCostSelectOptions,
+        ...this.costSelectOptions,
         items: {
-          select: this.toCostItemsSelectOptions,
+          select: this.costItemsSelectOptions,
         },
       },
+    });
+  }
+
+  async getCosts<T extends Prisma.CostSelect>(
+    whereOptions?: Prisma.CostWhereInput,
+    otherOptions?,
+    selectOptions?: T,
+  ) {
+    return this.prismaService.cost.findMany({
+      select: selectOptions || {
+        ...this.costSelectOptions,
+        items: {
+          select: this.costItemsSelectOptions,
+        },
+      },
+      where: whereOptions,
+      ...otherOptions,
     });
   }
 
@@ -30,9 +47,9 @@ export class CostRepository {
         id,
       },
       select: selectOptions || {
-        ...this.toCostSelectOptions,
+        ...this.costSelectOptions,
         items: {
-          select: this.toCostItemsSelectOptions,
+          select: this.costItemsSelectOptions,
         },
         book: {
           select: {
@@ -43,14 +60,14 @@ export class CostRepository {
     });
   }
 
-  toCostSelectOptions = {
+  costSelectOptions = {
     id: true,
     totalHarga: true,
     createdAt: true,
     updatedAt: true,
   };
 
-  toCostItemsSelectOptions = {
+  costItemsSelectOptions = {
     nama: true,
     harga: true,
     jumlah: true,

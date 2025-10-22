@@ -7,6 +7,7 @@ import { ErrorService } from '../common/error/error.service';
 import { CashBookService } from '../cash-book/cash-book.service';
 import { v4 as uuid } from 'uuid';
 import { CostRepository } from './repositories/cost.repository';
+import { GetCostQueryDto } from './dto/get- cost.dto';
 
 @Injectable()
 export class CostService {
@@ -56,8 +57,28 @@ export class CostService {
     return this.toCostResponse(cost);
   }
 
-  findAll() {
-    return `This action returns all cost`;
+  async findAll(auth: IAuth, query?: GetCostQueryDto) {
+    const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
+
+    const costs = await this.costRepo.getCosts(
+      {
+        book: {
+          ownerId,
+          id: query.bookId || undefined,
+        },
+      },
+      {
+        take: query.size,
+        ...(query.cursor && {
+          skip: 1,
+          cursor: {
+            id: query.cursor,
+          },
+        }),
+      },
+    );
+
+    return costs.map((cost) => this.toCostResponse(cost));
   }
 
   async findOne(auth: IAuth, id: string) {

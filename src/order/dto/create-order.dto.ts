@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class CreateOrderDto {
   @IsNotEmpty()
@@ -6,11 +14,20 @@ export class CreateOrderDto {
   @MaxLength(100)
   customer: string;
 
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderProductsDto)
+  products: OrderProductsDto[];
+}
+
+export class OrderProductsDto {
   @IsNotEmpty()
-  products: {
-    id: string;
-    quantity: number;
-  }[];
+  @IsString()
+  id: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  quantity: number;
 }
 
 export class OrderPaymentDto {}
