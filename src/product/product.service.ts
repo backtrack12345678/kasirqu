@@ -9,7 +9,6 @@ import { FileService } from '../file/file.service';
 import { Request } from 'express';
 import { ErrorService } from '../common/error/error.service';
 import { v4 as uuid } from 'uuid';
-import * as path from 'path';
 import { GetAllQueryDto } from './dto/get-product.dto';
 
 @Injectable()
@@ -35,10 +34,10 @@ export class ProductService {
       productPayload.categoryId,
     );
 
-    // const uploadedMedia = await this.fileService.writeFileStream(
-    //   media,
-    //   'product',
-    // );
+    const uploadedMedia = await this.fileService.writeFileStream(
+      media,
+      'product',
+    );
 
     const id = `product-${uuid().toString()}`;
 
@@ -48,10 +47,8 @@ export class ProductService {
       ...productPayload,
       harga: new Prisma.Decimal(harga),
       modal: new Prisma.Decimal(modal),
-      // namaFile: uploadedMedia.fileName,
-      // path: uploadedMedia.filePath,
-      namaFile: 'tes',
-      path: 'tes',
+      namaFile: uploadedMedia.fileName,
+      path: uploadedMedia.filePath,
     });
 
     return this.toProductResponse(product, request);
@@ -133,23 +130,21 @@ export class ProductService {
         payload.categoryId,
       );
 
-    // const uploadedMedia = media
-    //   ? await this.fileService.writeFileStream(media, 'product')
-    //   : null;
+    const uploadedMedia = media
+      ? await this.fileService.writeFileStream(media, 'product')
+      : null;
 
     const updatedProduct = await this.productRepo.updateProductById(id, {
       ...productPayload,
       harga: harga ? new Prisma.Decimal(harga) : undefined,
       modal: modal ? new Prisma.Decimal(modal) : undefined,
-      // namaFile: uploadedMedia?.fileName,
-      // path: uploadedMedia?.filePath,
-      namaFile: 'tes',
-      path: 'tes',
+      namaFile: uploadedMedia?.fileName,
+      path: uploadedMedia?.filePath,
     });
 
-    // if (uploadedMedia) {
-    //   await this.fileService.deleteFile(product.path);
-    // }
+    if (uploadedMedia) {
+      await this.fileService.deleteFile(product.path);
+    }
 
     return this.toProductResponse(updatedProduct, request);
   }
@@ -162,7 +157,7 @@ export class ProductService {
     });
 
     // delete file
-    // this.fileService.deleteFile(product.path);
+    this.fileService.deleteFile(product.path);
   }
 
   private toProductResponse(product, request: Request) {
