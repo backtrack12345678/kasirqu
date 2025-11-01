@@ -242,6 +242,7 @@ export class OrderService {
     const orderPayment = await this.orderRepo.updateOrderById(
       id,
       {
+        status: OrderStatus.DIBAYAR,
         payments: {
           create: {
             jumlah: Prisma.Decimal(totalPrice),
