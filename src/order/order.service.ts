@@ -229,7 +229,7 @@ export class OrderService {
     }
 
     const totalPaid = new Decimal(payload.totalPaid);
-    const totalPrice = new Decimal(order.totalPrice);
+    const totalPrice = new Decimal(order.totalHarga);
 
     if (totalPaid.lt(totalPrice)) {
       this.errorService.badRequest(

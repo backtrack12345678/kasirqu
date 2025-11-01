@@ -28,8 +28,6 @@ export class FileService {
     const uniqueFilename = `${originalName}-${uuid()}`;
     const filePath = path.join('uploads', folder, uniqueFilename);
 
-    console.log(filePath);
-
     const bufferStream = Readable.from(file.buffer);
     const writeStream = fs.createWriteStream(filePath);
 
