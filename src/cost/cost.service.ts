@@ -37,7 +37,7 @@ export class CostService {
 
     const id = `cost-${uuid().toString()}`;
 
-    const cost = this.costRepo.createCost({
+    const cost = await this.costRepo.createCost({
       id,
       totalHarga,
       items: {
@@ -103,6 +103,7 @@ export class CostService {
 
   toCostResponse(cost) {
     const { totalHarga, items, ...costData } = cost;
+
     return {
       ...costData,
       totalHarga: totalHarga.toString(),
