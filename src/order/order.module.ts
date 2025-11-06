@@ -6,9 +6,16 @@ import { ProductModule } from '../product/product.module';
 import { CashBookModule } from '../cash-book/cash-book.module';
 import { UserModule } from '../user/user.module';
 import { FileModule } from '../file/file.module';
+import { ChargeModule } from '../charge/charge.module';
 
 @Module({
-  imports: [ProductModule, CashBookModule, UserModule, FileModule],
+  imports: [
+    ProductModule,
+    CashBookModule,
+    UserModule,
+    FileModule,
+    ChargeModule,
+  ],
   controllers: [OrderController],
   providers: [OrderService, OrderRepository],
 })

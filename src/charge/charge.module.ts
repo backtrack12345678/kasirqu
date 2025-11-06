@@ -6,5 +6,6 @@ import { ChargeRepository } from './repositories/charge.repository';
 @Module({
   controllers: [ChargeController],
   providers: [ChargeService, ChargeRepository],
+  exports: [ChargeRepository],
 })
 export class ChargeModule {}

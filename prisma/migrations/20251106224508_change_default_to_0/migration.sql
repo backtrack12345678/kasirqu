@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `order` MODIFY `fee` DECIMAL(18, 2) NULL DEFAULT 0,
+    MODIFY `tax` DECIMAL(18, 2) NULL DEFAULT 0;

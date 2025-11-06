@@ -165,6 +165,8 @@ model Order {
 
   customer   String      @db.VarChar(100)
   status     OrderStatus @default(PENDING)
+  tax        Decimal?    @default(0) @db.Decimal(18, 2)
+  fee        Decimal?    @default(0) @db.Decimal(18, 2)
   totalHarga Decimal     @db.Decimal(18, 2)
 
   createdId   String?   @db.VarChar(150)

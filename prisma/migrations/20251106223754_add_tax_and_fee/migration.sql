@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `order` ADD COLUMN `fee` DECIMAL(18, 2) NULL,
+    ADD COLUMN `tax` DECIMAL(18, 2) NULL;

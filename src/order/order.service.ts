@@ -12,6 +12,7 @@ import { UserService } from '../user/user.service';
 import Decimal from 'decimal.js';
 import { GetOrdersQueryDto, GetTotalOrdersQueryDto } from './dto/get-order.dto';
 import { FileService } from '../file/file.service';
+import { ChargeRepository } from '../charge/repositories/charge.repository';
 
 @Injectable()
 export class OrderService {
@@ -22,6 +23,7 @@ export class OrderService {
     private productService: ProductService,
     private userService: UserService,
     private fileService: FileService,
+    private chargeRepo: ChargeRepository,
   ) {}
 
   async create(request, payload: CreateOrderDto) {
@@ -60,6 +62,15 @@ export class OrderService {
       return acc.add(product.harga.mul(p.quantity));
     }, new Prisma.Decimal(0));
 
+    const charges = await this.chargeRepo.getChargeByOwnerId(ownerId);
+
+    const actualTax = new Prisma.Decimal(charges[0]?.tax).div(100) || 0;
+    const actualFee = new Prisma.Decimal(charges[0]?.fee) || 0;
+
+    const priceTax = totalHarga.times(actualTax);
+
+    const actualPrice = totalHarga.plus(priceTax.plus(actualFee));
+
     const id = `order-${uuid().toString()}`;
 
     const order = await this.orderRepo.createOrder(
@@ -73,7 +84,9 @@ export class OrderService {
         },
         createdName: auth.nama,
         createdRole: auth.role,
-        totalHarga,
+        tax: priceTax,
+        fee: actualFee,
+        totalHarga: actualPrice,
         products: {
           createMany: {
             data: payload.products.map((p) => {
@@ -311,6 +324,8 @@ export class OrderService {
     id: true,
     customer: true,
     status: true,
+    tax: true,
+    fee: true,
     totalHarga: true,
     createdId: true,
     createdName: true,
@@ -331,9 +346,12 @@ export class OrderService {
   };
 
   toOrderResponse(order, request) {
-    const { payments, totalHarga, products, ...orderData } = order;
+    const { payments, totalHarga, products, tax, fee, ...orderData } = order;
+
     return {
       ...orderData,
+      tax: tax?.toString() || '0',
+      fee: fee?.toString() || '0',
       totalHarga: totalHarga.toString(),
       products: products.map((product) => {
         const { harga, namaFile, ...productData } = product;
