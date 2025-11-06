@@ -14,6 +14,7 @@ import { CashBookModule } from './cash-book/cash-book.module';
 import { OrderModule } from './order/order.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { CostModule } from './cost/cost.module';
+import { ChargeModule } from './charge/charge.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CostModule } from './cost/cost.module';
     OrderModule,
     SubscriptionModule,
     CostModule,
+    ChargeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

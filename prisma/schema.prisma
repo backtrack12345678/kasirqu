@@ -68,6 +68,7 @@ model User {
   cashBooks           CashBook[]
   subscriptions       UserSubscriptions[]
   subscriptionHistory SubscriptionHistory[]
+  charges             Charge?
 
   @@map("user")
 }
@@ -291,6 +292,21 @@ model SubscriptionHistory {
   updatedAt   DateTime? @updatedAt @map("updated_at")
 
   @@map("subscription_history")
+}
+
+model Charge {
+  id Int @id @default(autoincrement())
+
+  ownerId String @unique @map("owner_id") @db.VarChar(150)
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  tax Decimal @db.Decimal(10, 2)
+  fee Int
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("charge")
 }
 
 model Refresh_Token {
