@@ -69,6 +69,9 @@ export class CashBookService {
             id: query.cursor,
           },
         }),
+        orderBy: {
+          createdAt: 'desc', // 🔹 urutkan dari terbaru ke terlama
+        },
       },
     );
 
