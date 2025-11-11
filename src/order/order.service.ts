@@ -62,14 +62,29 @@ export class OrderService {
       return acc.add(product.harga.mul(p.quantity));
     }, new Prisma.Decimal(0));
 
+    // Ambil charge (fee & tax)
     const charges = await this.chargeRepo.getChargeByOwnerId(ownerId);
+    const charge = charges?.[0];
 
-    const actualTax = new Prisma.Decimal(charges[0]?.tax).div(100) || 0;
-    const actualFee = new Prisma.Decimal(charges[0]?.fee) || 0;
+    const actualTax = charge?.tax
+      ? new Prisma.Decimal(charge.tax).div(100)
+      : new Prisma.Decimal(0);
+    const actualFee = charge?.fee
+      ? new Prisma.Decimal(charge.fee)
+      : new Prisma.Decimal(0);
 
-    const priceTax = totalHarga.times(actualTax);
+    // Hitung pajak dan total akhir
+    const priceTax = totalHarga.mul(actualTax);
+    const actualPrice = totalHarga.add(priceTax).add(actualFee);
 
-    const actualPrice = totalHarga.plus(priceTax.plus(actualFee));
+    // const charges = await this.chargeRepo.getChargeByOwnerId(ownerId);
+
+    // const actualTax = new Prisma.Decimal(charges[0]?.tax).div(100) || 0;
+    // const actualFee = new Prisma.Decimal(charges[0]?.fee) || 0;
+
+    // const priceTax = totalHarga.times(actualTax);
+
+    // const actualPrice = totalHarga.plus(priceTax.plus(actualFee));
 
     const id = `order-${uuid().toString()}`;
 
