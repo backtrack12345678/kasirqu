@@ -58,7 +58,7 @@ export class CashBookService {
       this.cashBookSelectOptions,
       {
         ownerId,
-        // createdId: auth.role !== UserRole.OWNER ? auth.id : undefined,
+        ...(auth.role === UserRole.CASHIER && { createdId: auth.id }),
         createdAt: { gte: startDate, lte: endDate },
       },
       {
@@ -75,26 +75,24 @@ export class CashBookService {
       },
     );
 
+    const baseWhere = {
+      book: {
+        ownerId,
+        ...(auth.role === UserRole.CASHIER && { createdId: auth.id }),
+      },
+      createdAt: { gte: startDate, lte: endDate },
+    };
+
     const [orders, costs] = await Promise.all([
       this.prismaService.order.groupBy({
         by: ['cashBookId'],
         _sum: { totalHarga: true },
-        where: {
-          book: {
-            ownerId,
-          },
-          createdAt: { gte: startDate, lte: endDate },
-        },
+        where: baseWhere,
       }),
       this.prismaService.cost.groupBy({
         by: ['cashBookId'],
         _sum: { totalHarga: true },
-        where: {
-          book: {
-            ownerId,
-          },
-          createdAt: { gte: startDate, lte: endDate },
-        },
+        where: baseWhere,
       }),
     ]);
 
@@ -130,6 +128,12 @@ export class CashBookService {
 
     if (!cashBook || cashBook.owner.id !== ownerId) {
       this.errorService.notFound('Buku Kas Tidak Ditemukan');
+    }
+
+    if (auth.role === UserRole.CASHIER && auth.id !== cashBook.createdId) {
+      this.errorService.forbidden(
+        'Tidak Dapat Melihat Buku Kas Milik Kasir Lain',
+      );
     }
 
     return this.toCashBookResponse(cashBook);
