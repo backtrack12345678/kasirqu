@@ -56,6 +56,12 @@ export class OrderService {
       );
     }
 
+    if (auth.role === UserRole.CASHIER && auth.id !== cashBook.createdId) {
+      this.errorService.forbidden(
+        'Tidak Dapat Membuat Pesanan Milik Kasir Lain',
+      );
+    }
+
     const totalHarga = payload.products.reduce((acc, p) => {
       const product = dbProducts.find((d) => d.id === p.id);
       if (!product) return acc;
@@ -134,6 +140,7 @@ export class OrderService {
         book: {
           ownerId,
           id: query.bookId || undefined,
+          ...(auth.role === UserRole.CASHIER && { createdId: auth.id }),
         },
       },
       {
@@ -159,12 +166,19 @@ export class OrderService {
       book: {
         select: {
           ownerId: true,
+          createdId: true,
         },
       },
     });
 
     if (!order || order.book.ownerId !== ownerId) {
       this.errorService.notFound('Pesanan Tidak Ditemukan');
+    }
+
+    if (auth.role === UserRole.CASHIER && auth.id !== order.book.createdId) {
+      this.errorService.forbidden(
+        'Tidak Dapat Melihat Pesanan Milik Kasir Lain',
+      );
     }
 
     // if (auth.role === UserRole.WAITER && auth.id !== order.createdId) {

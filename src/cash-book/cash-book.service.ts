@@ -142,6 +142,7 @@ export class CashBookService {
   async findOneByOwnerIdAndStatus(ownerId: string, status: CashBookStatus) {
     return this.cashBookRepo.getBookByOwnerIdAndStatus(ownerId, status, {
       id: true,
+      createdId: true,
     });
   }
 
