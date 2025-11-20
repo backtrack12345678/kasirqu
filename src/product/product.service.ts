@@ -95,7 +95,7 @@ export class ProductService {
     return products;
   }
 
-  async findOne(request: any, id: string) {
+  async findOne(request: any, id: string, isPath: boolean = false) {
     const auth: IAuth = request.user;
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
 
@@ -109,7 +109,7 @@ export class ProductService {
       this.errorService.notFound('Produk Tidak Ditemukan');
     }
 
-    return this.toProductResponse(product, request);
+    return this.toProductResponse(product, request, isPath);
   }
 
   async update(
@@ -122,7 +122,7 @@ export class ProductService {
     const ownerId = auth.role !== UserRole.OWNER ? auth.ownerId : auth.id;
     const { harga, modal, ...productPayload } = payload;
 
-    const product = await this.findOne(request, id);
+    const product = await this.findOne(request, id, true);
 
     if (payload.categoryId)
       await this.categoryService.checkCategoryOwner(
@@ -160,7 +160,11 @@ export class ProductService {
     this.fileService.deleteFile(product.path);
   }
 
-  private toProductResponse(product, request: Request) {
+  private toProductResponse(
+    product,
+    request: Request,
+    isPath: boolean = false,
+  ) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { harga, namaFile, modal, path, ...productData } = product;
     return {
@@ -168,6 +172,7 @@ export class ProductService {
       harga: harga.toString(),
       modal: modal?.toString() || null,
       urlFile: `${this.fileService.getHostFile(request)}/file/product/${namaFile}`,
+      path: isPath ? path : undefined,
     };
   }
 }

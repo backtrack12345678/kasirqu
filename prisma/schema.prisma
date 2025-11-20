@@ -69,6 +69,7 @@ model User {
   subscriptions       UserSubscriptions[]
   subscriptionHistory SubscriptionHistory[]
   charges             Charge?
+  qris                Qris?
 
   @@map("user")
 }
@@ -309,6 +310,21 @@ model Charge {
   updatedAt DateTime? @updatedAt @map("updated_at")
 
   @@map("charge")
+}
+
+model Qris {
+  id Int @id @default(autoincrement())
+
+  ownerId String @unique @map("owner_id") @db.VarChar(150)
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  namaFile String @map("nama_file") @db.VarChar(150)
+  path     String @db.VarChar(150)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("qris")
 }
 
 model Refresh_Token {

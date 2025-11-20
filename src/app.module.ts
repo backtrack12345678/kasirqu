@@ -15,6 +15,7 @@ import { OrderModule } from './order/order.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { CostModule } from './cost/cost.module';
 import { ChargeModule } from './charge/charge.module';
+import { QrisModule } from './qris/qris.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ChargeModule } from './charge/charge.module';
     SubscriptionModule,
     CostModule,
     ChargeModule,
+    QrisModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -58,6 +58,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 #uploads
 #hide 
 uploads/product/*
+uploads/qris/*
 
 #unhide
 !uploads/product/.gitkeep
+!uploads/qris/.gitkeep
